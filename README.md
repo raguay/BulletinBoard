@@ -1,16 +1,19 @@
-# README
+# BulletinBoard
 
-## About
+BulletinBoard is a program for showing information and dialogs to the user. Scripts can use it to get information from the user. It is used by the [EmailIt](https://GitHub.com/raguay/EmailIt) to as information from the user for filling in a template. 
 
-This is the official Wails Svelte template.
+## How to build
 
-## Live Development
+You have to have [node.js](https://nodejs.org/en/), [go](https://go.dev/), and [Wails 2](https://wails.io) installed first. To build it, type:
 
-To run in live development mode, run `wails dev` in the project directory. This will run a Vite development
-server that will provide very fast hot reload of your frontend changes. If you want to develop in a browser
-and have access to your Go methods, there is also a dev server that runs on http://localhost:34115. Connect
-to this in your browser, and you can call your Go code from devtools.
+```sh
+wails build
+```
 
-## Building
+To run the development environment, you type:
 
-To build a redistributable, production mode package, use `wails build`.
+```sh
+wails dev
+```
+
+
