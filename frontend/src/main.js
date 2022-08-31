@@ -1,8 +1,7 @@
-import './style.css'
-import App from './App.svelte'
+import BulletinBoard from './BulletinBoard.svelte'
 
-const app = new App({
-  target: document.getElementById('app')
+const app = new BulletinBoard({
+  target: document.body
 })
 
-export default app
+export default BulletinBoard
