@@ -151,7 +151,7 @@ func backend(ctx context.Context) {
 		//
 		// Get the return.
 		//
-		retData := processData{}
+		retData := newProcessData()
 		retData.init(c, ctx)
 		//rt.EventsOn(ctx, "dialogreturn", retData)
 		for retData.running {
