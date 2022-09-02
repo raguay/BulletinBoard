@@ -6,7 +6,6 @@
   import { state } from "./stores/state.js";
   import { theme } from "./stores/theme.js";
   import { message } from "./stores/message.js";
-  import { dialog } from "./stores/dialog.js";
   import { raw } from "./stores/raw.js";
   import * as rt from "../wailsjs/runtime/runtime.js"; // the runtime for Wails2
 
@@ -34,6 +33,14 @@
         //
         $state = "nothing";
       }
+    });
+    rt.EventsOn("append", (msg) => {
+      $state = "message";
+      $message = $message + msg;
+    });
+    rt.EventsOn("dialog", (msg) => {
+      $state = "raw";
+      $raw = msg;
     });
   });
 

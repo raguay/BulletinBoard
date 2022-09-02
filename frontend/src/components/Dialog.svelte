@@ -1,31 +1,20 @@
 <script>
-  import { onMount } from "svelte";
+  import { onMount, afterUpdate } from "svelte";
   import { dialog } from "../stores/dialog.js";
-  import { theme } from "../stores/theme.js";
-  import { state } from "../stores/state.js";
 
-  onMount(() => {});
+  onMount(() => {
+    console.log($dialog);
+  });
 
-  function close() {
-    $state = "nothing";
-  }
+  afterUpdate(() => {});
 </script>
 
-<div id="dialog">
-  <span>{$dialog}</span>
-  <div id="buttonbar">
-    <button
-      id="closebtn"
-      style="background-color: {$theme.textAreaColor}; color: {$theme.textColor};"
-      on:click={close}
-    >
-      close
-    </button>
-  </div>
+<div id="dialogOuter">
+  {@html $dialog.html}
 </div>
 
 <style>
-  #dialog {
+  #dialogOuter {
     display: flex;
     flex-direction: column;
     padding: 0px;

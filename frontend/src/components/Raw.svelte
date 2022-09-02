@@ -1,17 +1,22 @@
 <script>
   import { onMount, afterUpdate } from "svelte";
   import { raw } from "../stores/raw.js";
-  import { theme } from "../stores/theme.js";
   import { state } from "../stores/state.js";
+  import * as rt from "../../wailsjs/runtime/runtime.js"; // the runtime for Wails2
 
-  onMount(() => {});
-
-  function close() {
-    $state = "nothing";
-  }
+  onMount(() => {
+    window.BBData = {};
+    window.BBData.dialogStore = {};
+    window.BBData.dialogStore.dialog = $raw;
+    window.BBData.dialogStore.callBack = function () {
+      $state = "nothing";
+      rt.EventsEmit("dialogreturn", window.BBData.dialogStore.dialogResult);
+    };
+  });
 
   afterUpdate(() => {
-    insertAndExecute("dialog", $raw);
+    insertAndExecute("rawdiv", $raw.html);
+    rt.WindowSetSize($raw.width, $raw.height + 30);
   });
 
   //
@@ -19,6 +24,7 @@
   //
   function insertAndExecute(id, text) {
     let domelement = document.getElementById(id);
+    console.log(domelement);
     domelement.innerHTML = text;
     var scripts = [];
     let ret = domelement.childNodes;
@@ -61,40 +67,15 @@
   //
 </script>
 
-<div id="raw">
-  <div id="dialog">
-    {{ $raw }}
-  </div>
-  <div id="buttonbar">
-    <button
-      id="closebtn"
-      style="background-color: {$theme.textAreaColor}; color: {$theme.textColor};"
-      on:click={close}
-    >
-      close
-    </button>
-  </div>
+<div id="rawdiv">
+  {@html $raw.html}
 </div>
 
 <style>
-  #raw {
+  #rawdiv {
     display: flex;
     flex-direction: column;
     padding: 0px;
     margin: 0px;
-  }
-
-  #buttonbar {
-    display: flex;
-    flex-direction: row;
-    margin: 10px;
-    padding: 10px;
-    align-items: center;
-    justify-content: center;
-  }
-
-  button {
-    padding: 5px;
-    border-radius: 10px;
   }
 </style>
