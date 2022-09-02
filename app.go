@@ -68,8 +68,8 @@ func (p *processData) init(c *gin.Context, ctx context.Context) {
 
 func (p *processData) optionalData(msg string) {
 	p.c.JSON(http.StatusOK, msg)
-	rt.EventsOff(p.ctx, "dialogreturn")
 	p.running = false
+	rt.EventsOff(p.ctx, "dialogreturn")
 }
 
 func backend(ctx context.Context) {
