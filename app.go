@@ -6,12 +6,14 @@ import (
 	rt "github.com/wailsapp/wails/v2/pkg/runtime"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 )
 
 // App struct
 type App struct {
 	ctx context.Context
+	srv *http.Server
 }
 
 // NewApp creates a new App application struct
@@ -24,7 +26,7 @@ func (a *App) domReady(ctx context.Context) {
 }
 
 func (a *App) shutdown(ctx context.Context) {
-
+	a.srv.Shutdown(ctx)
 }
 
 // startup is called when the app starts. The context is saved
@@ -35,7 +37,7 @@ func (a *App) startup(ctx context.Context) {
 	//
 	// We need to start the backend and setup the signaling.
 	//
-	go backend(ctx)
+	go backend(a, ctx)
 }
 
 type Msg struct {
@@ -50,29 +52,7 @@ type Dialog struct {
 	Y      int    `json:"y" binding:"required"`
 }
 
-type processData struct {
-	c       *gin.Context
-	ctx     context.Context
-	running bool
-}
-
-func newProcessData() *processData {
-	return &processData{}
-}
-
-func (p *processData) init(c *gin.Context, ctx context.Context) {
-	p.c = c
-	p.ctx = ctx
-	p.running = true
-}
-
-func (p *processData) optionalData(msg string) {
-	p.c.JSON(http.StatusOK, msg)
-	p.running = false
-	rt.EventsOff(p.ctx, "dialogreturn")
-}
-
-func backend(ctx context.Context) {
+func backend(a *App, ctx context.Context) {
 	//
 	// This will have the web server backend for BulletinBoard.
 	//
@@ -109,6 +89,9 @@ func backend(ctx context.Context) {
 		rt.EventsEmit(ctx, "message", message)
 	})
 
+	//
+	// Define the append to message route. This one is URI only.
+	//
 	r.GET("/api/message/append/:message", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"msg": "okay",
@@ -136,6 +119,9 @@ func backend(ctx context.Context) {
 		rt.EventsEmit(ctx, "append", message)
 	})
 
+	//
+	// Add the dialog route for user defined raw dialogs.
+	//
 	r.PUT("/api/dialog", func(c *gin.Context) {
 		var json Dialog
 		if err := c.ShouldBindJSON(&json); err != nil {
@@ -151,12 +137,29 @@ func backend(ctx context.Context) {
 		//
 		// Get the return.
 		//
-		retData := newProcessData()
-		retData.init(c, ctx)
-		//rt.EventsOn(ctx, "dialogreturn", retData)
-		for retData.running {
-			time.Sleep(30 * time.Second)
+		running := true
+		rt.EventsOn(ctx, "dialogreturn", func(optionalData ...interface{}) {
+			c.JSON(http.StatusOK, optionalData)
+			running = false
+			rt.EventsOff(ctx, "dialogreturn")
+		})
+		for running {
+			time.Sleep(time.Second)
 		}
+	})
+
+	//
+	// Add the quit route.
+	//
+	r.GET("/api/quit", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"msg": "okay",
+		})
+
+		//
+		// Exit the application.
+		//
+		os.Exit(0)
 	})
 
 	//

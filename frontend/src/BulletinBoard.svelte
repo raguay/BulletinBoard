@@ -12,6 +12,8 @@
   let containerDOM = null;
   let minWidth = 300;
   let minHeight = 60;
+  let width = 0;
+  let height = 0;
 
   onMount(async () => {
     $state = "nothing";
@@ -50,6 +52,9 @@
     //
     if ($state === "nothing") {
       rt.WindowHide();
+      width = 0;
+      height = 0;
+      rt.WindowSetSize(width, height);
     } else {
       rt.WindowShow();
     }
@@ -57,14 +62,30 @@
     //
     // Figure out the width and height of the new canvas.
     //
+    width = minWidth;
+    height = minHeight;
     if (containerDOM !== null) {
-      let width = minWidth;
-      let height = minHeight;
       if (height < containerDOM.clientHeight)
         height = containerDOM.clientHeight;
       if (width < containerDOM.clientWidth) width = containerDOM.clientWidth;
-      rt.WindowSetSize(width, height);
+      if ($state === "raw") {
+        //
+        // Check the overrides for a raw state.
+        //
+        if (width < $raw.width) width = $raw.width;
+        if (height < $raw.height) height = $raw.height;
+
+        //
+        // Set the position on the screen.
+        //
+        rt.WindowSetPosition($raw.y, $raw.x);
+      }
+      height += 30;
     }
+    //
+    // Set the determined size;
+    //
+    rt.WindowSetSize(width, height);
   });
 
   async function getTheme(callback) {
@@ -101,13 +122,12 @@
 
 <div
   id="closure"
-  bind:this={containerDOM}
-  style="background-color: {$theme.backgroundColor}; color: {$theme.textColor}; font-family: {$theme.font}; font-size: {$theme.fontSize};"
+  style="width: {width}px; height: {height}px; background-color: {$theme.backgroundColor}; color: {$theme.textColor}; font-family: {$theme.font}; font-size: {$theme.fontSize};"
 >
   <div id="header" data-wails-drag>
     <h3>Bulletin Board</h3>
   </div>
-  <div id="main">
+  <div id="main" bind:this={containerDOM}>
     {#if $state === "message"}
       <Message />
     {:else if $state === "dialog"}
@@ -149,7 +169,7 @@
   #main {
     display: flex;
     flex-direction: column;
-    margin: 0px 0px 0px 20px;
+    margin: 0px;
     padding: 0px;
     min-width: 100px;
   }

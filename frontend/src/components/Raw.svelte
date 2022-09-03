@@ -12,11 +12,11 @@
       $state = "nothing";
       rt.EventsEmit("dialogreturn", window.BBData.dialogStore.dialogResult);
     };
+    console.log($raw);
   });
 
   afterUpdate(() => {
     insertAndExecute("rawdiv", $raw.html);
-    rt.WindowSetSize($raw.width, $raw.height + 30);
   });
 
   //
@@ -67,7 +67,8 @@
   //
 </script>
 
-<div id="rawdiv">
+<!-- Take 30 pixels off the width for the padding -->
+<div id="rawdiv" style="width: {$raw.width - 30}px; height: {$raw.height}px;">
   {@html $raw.html}
 </div>
 
@@ -75,7 +76,7 @@
   #rawdiv {
     display: flex;
     flex-direction: column;
-    padding: 0px;
+    padding: 0px 10px 0px 20px;
     margin: 0px;
   }
 </style>

@@ -1,12 +1,5 @@
 <script>
-  import { onMount, afterUpdate } from "svelte";
   import { dialog } from "../stores/dialog.js";
-
-  onMount(() => {
-    console.log($dialog);
-  });
-
-  afterUpdate(() => {});
 </script>
 
 <div id="dialogOuter">
