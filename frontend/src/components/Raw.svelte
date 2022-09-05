@@ -12,7 +12,6 @@
       $state = "nothing";
       rt.EventsEmit("dialogreturn", window.BBData.dialogStore.dialogResult);
     };
-    console.log($raw);
   });
 
   afterUpdate(() => {
@@ -24,7 +23,6 @@
   //
   function insertAndExecute(id, text) {
     let domelement = document.getElementById(id);
-    console.log(domelement);
     domelement.innerHTML = text;
     var scripts = [];
     let ret = domelement.childNodes;

@@ -1,5 +1,5 @@
 <script>
-  import { onMount, afterUpdate } from "svelte";
+  import { onMount, afterUpdate, tick } from "svelte";
   import Message from "./components/Message.svelte";
   import Dialog from "./components/Dialog.svelte";
   import Raw from "./components/Raw.svelte";
@@ -7,6 +7,7 @@
   import { theme } from "./stores/theme.js";
   import { message } from "./stores/message.js";
   import { raw } from "./stores/raw.js";
+  import { dialog } from "./stores/dialog.js";
   import * as rt from "../wailsjs/runtime/runtime.js"; // the runtime for Wails2
 
   let containerDOM = null;
@@ -44,21 +45,13 @@
       $state = "raw";
       $raw = msg;
     });
+    rt.EventsOn("modal", (msg) => {
+      $state = "dialog";
+      $dialog = msg;
+    });
   });
 
-  afterUpdate(() => {
-    //
-    // The nothing state should force a window hiding. Otherwise, show the window.
-    //
-    if ($state === "nothing") {
-      rt.WindowHide();
-      width = 0;
-      height = 0;
-      rt.WindowSetSize(width, height);
-    } else {
-      rt.WindowShow();
-    }
-
+  afterUpdate(async () => {
     //
     // Figure out the width and height of the new canvas.
     //
@@ -82,18 +75,47 @@
       }
       height += 30;
     }
+
     //
-    // Set the determined size;
+    // Set to the determined size;
     //
     rt.WindowSetSize(width, height);
+
+    //
+    // The nothing state should force a window hiding. Otherwise, show the window.
+    //
+    if ($state === "nothing") {
+      //
+      // Setting it small helps get the correct size when shown.
+      //
+      width = 0;
+      height = 0;
+      rt.WindowSetSize(width, height);
+
+      //
+      // Wait an update cycle to let it settle in.
+      //
+      await tick();
+
+      //
+      // Hide the window.
+      //
+      rt.WindowHide();
+    } else {
+      //
+      // Show the window.
+      //
+      rt.WindowShow();
+    }
   });
 
-  async function getTheme(callback) {
+  async function getTheme() {
     //
     // This would read the theme from a file. It currently just sets a typical theme.
     // I love the Dracula color theme.
     //
     $theme = {
+      name: "Default",
       font: "Fira Code, Menlo",
       fontSize: "12pt",
       textAreaColor: "#454158",
@@ -108,15 +130,6 @@
       Red: "#FF9580",
       Yellow: "#FFFF80",
     };
-    if (typeof callback !== "undefined") callback();
-  }
-
-  function wait(ms) {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        resolve(ms);
-      }, ms);
-    });
   }
 </script>
 

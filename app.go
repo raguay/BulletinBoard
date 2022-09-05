@@ -52,6 +52,25 @@ type Dialog struct {
 	Y      int    `json:"y" binding:"required"`
 }
 
+type DialogItem struct {
+	ModelType string `json:"modaltype" binding:"required"`
+	Name      string `json:"name" binding:"required"`
+	Id        string `json:"id" binding:"required"`
+	Value     string `json:"value" binding:"required"`
+	For       string `json:"for" binding:"required"`
+}
+
+type DialogButton struct {
+	Name   string `json:"name" binding:"required"`
+	Id     string `json:"id" binding:"required"`
+	Action string `json:"action" binding:"required"`
+}
+
+type ModalDialog struct {
+	Items   []DialogItem   `json:"items" binding:"required"`
+	Buttons []DialogButton `json:"buttons" binding:"required"`
+}
+
 func backend(a *App, ctx context.Context) {
 	//
 	// This will have the web server backend for BulletinBoard.
@@ -133,6 +152,35 @@ func backend(a *App, ctx context.Context) {
 		// Send it to the frontend.
 		//
 		rt.EventsEmit(ctx, "dialog", json)
+
+		//
+		// Get the return.
+		//
+		running := true
+		rt.EventsOn(ctx, "dialogreturn", func(optionalData ...interface{}) {
+			c.JSON(http.StatusOK, optionalData)
+			running = false
+			rt.EventsOff(ctx, "dialogreturn")
+		})
+		for running {
+			time.Sleep(time.Second)
+		}
+	})
+
+	//
+	// Add the dialog route for user defined raw dialogs.
+	//
+	r.PUT("/api/modal", func(c *gin.Context) {
+		var json ModalDialog
+		if err := c.ShouldBindJSON(&json); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		//
+		// Send it to the frontend.
+		//
+		rt.EventsEmit(ctx, "modal", json)
 
 		//
 		// Get the return.
