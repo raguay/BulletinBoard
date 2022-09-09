@@ -1,19 +1,21 @@
 package main
 
 import (
-	"net/http"
+	"encoding/json"
+	"fmt"
+	"github.com/aymerick/raymond"
+	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"io"
 	"io/ioutil"
 	"log"
-	"strings"
-	"fmt"
+	"net/http"
 	"os"
-	"github.com/aymerick/raymond"
-	"path/filepath"
 	"path"
+	"path/filepath"
 	"regexp"
-	"encoding/json"
-	"github.com/charmbracelet/bubbletea"
+	"strings"
 )
 
 //
@@ -57,7 +59,7 @@ func putRequest(url string, data io.Reader) string {
 		// handle error
 		log.Fatal(err)
 	}
-	
+
 	// set the request header Content-Type for json
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 
@@ -95,11 +97,11 @@ func fileExists(filename string) bool {
 //
 // Description:  This function trims the extension off of a file name.
 //
-// Inputs:       
+// Inputs:
 //               fn      File name to remove the extension.
 //
 func FilenameWithoutExtension(fn string) string {
-      return strings.TrimSuffix(fn, path.Ext(fn))
+	return strings.TrimSuffix(fn, path.Ext(fn))
 }
 
 //
@@ -108,116 +110,453 @@ func FilenameWithoutExtension(fn string) string {
 // Description:  A utility function to return an array of strings
 //               that was processed by a given function.
 //
-// Inputs:       
+// Inputs:
 //               list      Array of strings
 //               f         Function to execute on each string
 //
 func Map(list []string, f func(string) string) []string {
-    result := make([]string, len(list))
-    for i, item := range list {
-        result[i] = f(item)
-    }
-    return result
+	result := make([]string, len(list))
+	for i, item := range list {
+		result[i] = f(item)
+	}
+	return result
 }
 
+//
+// NOTE: This section is for the build cli using Bubbletea framework.
+//
 //
 // Struct:		model
 //
 // description: The structure for the bubbletea interface for building a dialog.
 //
+
+//
+// This is the information that we will be filling up to make the
+// dialogs.
+//
+type DialogItem struct {
+	ModelType string `json:"modaltype" bindin:"required"`
+	Name      string `json:"name" bindin:"required"`
+	Id        string `json:"id" bindin:"required"`
+	Value     string `json:"value" bindin:"required"`
+	For       string `json:"for" bindin:"required"`
+}
+
+type DialogButton struct {
+	Name   string `json:"name" bindin:"required"`
+	Id     string `json:"id" bindin:"required"`
+	Action string `json:"action" bindin:"required"`
+}
+
+type ModalDialog struct {
+	Items   []DialogItem   `json:"items" bindin:"required"`
+	Buttons []DialogButton `json:"buttons" bindin:"required"`
+}
+
+var buildDialog ModalDialog // The dialog structure we need to build
+
 type model struct {
-    choices  []string           // items on the to-do list
-    cursor   int                // which to-do list item our cursor is pointing at
-    selected map[int]struct{}   // which to-do items are selected
+	orgItems   []string          // beginning list of choices
+	diagItems  []string          // These are the choices for adding to a dialog
+	choices    []string          // These are the current items being shown.
+	cursor     int               // which to-do list item our cursor is pointing at
+	selected   int               // which to-do items are selected
+	state      int               // What state the system is in
+	textinputs []textinput.Model // This contains the input fields for the labels
+	focused    int               // This is the currently focused input
+	err        error             // this will contain any errors from the validators
+}
+
+type tickMsg struct{}
+type errMsg error
+
+const (
+	name = iota
+	id
+	value
+	forid
+)
+
+const (
+	hotPink  = lipgloss.Color("#FF06B7")
+	darkGray = lipgloss.Color("#767676")
+)
+
+var (
+	inputStyle    = lipgloss.NewStyle().Foreground(hotPink)
+	continueStyle = lipgloss.NewStyle().Foreground(darkGray)
+)
+
+// Validator functions to ensure valid input
+func nameValidator(s string) error {
+	return nil
+}
+
+func stringValidator(s string) error {
+	return nil
 }
 
 func initialModel() model {
+	var inputs []textinput.Model = make([]textinput.Model, 4)
+	inputs[name] = textinput.New()
+	inputs[name].Placeholder = "Label Name"
+	inputs[name].Focus()
+	inputs[name].CharLimit = 20
+	inputs[name].Width = 22
+	inputs[name].Prompt = ""
+	inputs[name].Validate = nameValidator
+
+	inputs[id] = textinput.New()
+	inputs[id].Placeholder = "Label Id"
+	inputs[id].CharLimit = 20
+	inputs[id].Width = 22
+	inputs[id].Prompt = ""
+	inputs[id].Validate = nameValidator
+
+	inputs[value] = textinput.New()
+	inputs[value].Placeholder = "Message"
+	inputs[value].CharLimit = 20
+	inputs[value].Width = 22
+	inputs[value].Prompt = ""
+	inputs[value].Validate = stringValidator
+
+	inputs[forid] = textinput.New()
+	inputs[forid].Placeholder = "Name of Input"
+	inputs[forid].CharLimit = 20
+	inputs[forid].Width = 22
+	inputs[forid].Prompt = ""
+	inputs[forid].Validate = nameValidator
+
 	return model{
 		// Our list of acctions
-		choices:  []string{"Add Item", "Add Button", "Save", "Quit"},
-
-		// A map which indicates which choices are selected. We're using
-		// the  map like a mathematical set. The keys refer to the indexes
-		// of the `choices` slice, above.
-		selected: make(map[int]struct{}),
+		orgItems:   []string{"Add Item", "Add Button", "Save"},
+		diagItems:  []string{"Add label", "Add Input", "Save"},
+		choices:    []string{"Add Item", "Add Button", "Save"},
+		cursor:     0,
+		state:      0,
+		textinputs: inputs,
+		focused:    0,
+		err:        nil,
 	}
 }
 
 func (m model) Init() tea.Cmd {
-    // Just return `nil`, which means "no I/O right now, please."
-    return nil
+	return textinput.Blink
+}
+
+// nextInput focuses the next input field
+func (m *model) nextInput() {
+	m.focused = (m.focused + 1) % len(m.textinputs)
+}
+
+// prevInput focuses the previous input field
+func (m *model) prevInput() {
+	m.focused--
+	// Wrap around
+	if m.focused < 0 {
+		m.focused = len(m.textinputs) - 1
+	}
+}
+
+type makeItemFinishedMsg struct{ m model }
+
+func (m model) MakeItem() tea.Msg {
+	return makeItemFinishedMsg{m}
+}
+
+type makeLabelFinishedMsg struct{ m model }
+
+func (m model) MakeLabel() tea.Msg {
+	return makeLabelFinishedMsg{m}
+}
+
+type makeButtonFinishedMsg struct{ m model }
+
+func (m model) MakeButton() tea.Msg {
+	return makeButtonFinishedMsg{m}
+}
+
+type makeInputFinishedMsg struct{ m model }
+
+func (m model) MakeInput() tea.Msg {
+	return makeInputFinishedMsg{m}
+}
+
+type labelInputFinishedMsg struct{ m model }
+
+func (m model) SaveInput() tea.Msg {
+	//
+	// Save the input data to the build structure
+	//
+	switch m.state {
+	case 2:
+		//
+		// This is the label case.
+		//
+		var di DialogItem
+		di.ModelType = "label"
+		for numti := len(m.textinputs); numti >= 0; numti-- {
+			switch numti {
+			case 0:
+				di.Name = m.textinputs[numti].Value()
+				break
+
+			case 1:
+				di.Id = m.textinputs[numti].Value()
+				break
+
+			case 2:
+				di.Value = m.textinputs[numti].Value()
+				break
+
+			case 3:
+				di.For = m.textinputs[numti].Value()
+				break
+
+			}
+		}
+		buildDialog.Items = append(buildDialog.Items, di)
+
+	case 4:
+		//
+		// Creating a Input
+		//
+		break
+
+	case 6:
+		//
+		// Creating a button
+		//
+		break
+
+	default:
+		break
+	}
+
+	//
+	// Go back to the first state.
+	//
+	fmt.Print(m)
+	m.state = 0
+	m.cursor = 0
+	m.focused = 0
+	return labelInputFinishedMsg{m}
+}
+
+type saveSturctureFinishedMsg struct{ m model }
+
+func (m model) SaveStructure() tea.Msg {
+	//
+	// Save the structure to a file.
+	//
+	file, _ := json.MarshalIndent(buildDialog, "", " ")
+	_ = ioutil.WriteFile("test.json", file, 0644)
+	return saveSturctureFinishedMsg{m}
+}
+
+func switchInQueryMode(m model, msg string) (tea.Model, tea.Cmd) {
+	// Cool, what was the actual key pressed?
+	switch msg {
+
+	// These keys should exit the program.
+	case "ctrl+c", "q":
+		return m, tea.Quit
+
+	// The "up" and "k" keys move the cursor up
+	case "up", "k":
+		if m.cursor > 0 {
+			m.cursor--
+		}
+
+	// The "down" and "j" keys move the cursor down
+	case "down", "j":
+		if m.cursor < len(m.choices)-1 {
+			m.cursor++
+		}
+
+	// The "enter" key will select the action to perform.
+	case "enter":
+		switch m.state {
+		case 0:
+			if m.cursor == 1 {
+				return m, m.MakeButton
+			} else if m.cursor == 0 {
+				return m, m.MakeItem
+			} else {
+				// this would save.
+				return m, m.SaveStructure
+			}
+
+		case 1:
+			if m.cursor == 0 {
+				return m, m.MakeLabel
+			} else if m.cursor == 1 {
+				return m, m.MakeInput
+			} else if m.cursor == 2 {
+				// This would save.
+				return m, m.SaveStructure
+			}
+
+		case 3:
+			return m, m.MakeInput
+
+		case 5:
+			return m, m.MakeButton
+		}
+	}
+	return m, nil
+}
+
+func switchInLabelMode(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
+	var (
+		cmds []tea.Cmd = make([]tea.Cmd, len(m.textinputs))
+	)
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyEnter:
+			if m.focused == len(m.textinputs)-1 {
+				//
+				// This is the last input, save the inputs
+				//
+				return m, m.SaveInput
+			} else {
+				m.nextInput()
+			}
+		case tea.KeyCtrlC, tea.KeyEsc:
+			return m, tea.Quit
+		case tea.KeyShiftTab, tea.KeyCtrlP:
+			m.prevInput()
+		case tea.KeyTab, tea.KeyCtrlN:
+			m.nextInput()
+		}
+		for i := range m.textinputs {
+			m.textinputs[i].Blur()
+		}
+		m.textinputs[m.focused].Focus()
+
+	// We handle errors just like any other message
+	case errMsg:
+		m.err = msg
+		return m, nil
+	}
+
+	for i := range m.textinputs {
+		m.textinputs[i], cmds[i] = m.textinputs[i].Update(msg)
+	}
+	return m, tea.Batch(cmds...)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-    switch msg := msg.(type) {
+	switch msg2 := msg.(type) {
 
-    // Is it a key press?
-    case tea.KeyMsg:
+	case makeItemFinishedMsg:
+		m.choices = m.diagItems
+		m.state = 1
+		return m, nil
 
-        // Cool, what was the actual key pressed?
-        switch msg.String() {
+	case makeLabelFinishedMsg:
+		m.choices = m.orgItems
+		m.state = 2
+		return m, nil
 
-        // These keys should exit the program.
-        case "ctrl+c", "q":
-            return m, tea.Quit
+	case labelInputFinishedMsg:
+		m.choices = m.orgItems
+		m.state = 0
+		return m, nil
 
-        // The "up" and "k" keys move the cursor up
-        case "up", "k":
-            if m.cursor > 0 {
-                m.cursor--
-            }
+	case makeInputFinishedMsg:
+		m.choices = m.orgItems
+		m.state = 0
+		return m, nil
 
-        // The "down" and "j" keys move the cursor down
-        case "down", "j":
-            if m.cursor < len(m.choices)-1 {
-                m.cursor++
-            }
+	case makeButtonFinishedMsg:
+		m.state = 0
+		return m, nil
 
-        // The "enter" key and the spacebar (a literal space) toggle
-        // the selected state for the item that the cursor is pointing at.
-        case "enter", " ":
-            _, ok := m.selected[m.cursor]
-            if ok {
-                delete(m.selected, m.cursor)
-            } else {
-                m.selected[m.cursor] = struct{}{}
-            }
-        }
-    }
+	case saveSturctureFinishedMsg:
+		return m, tea.Quit
 
-    // Return the updated model to the Bubble Tea runtime for processing.
-    // Note that we're not returning a command.
-    return m, nil
+	// Is it a key press?
+	case tea.KeyMsg:
+		switch m.state {
+		case 0, 1, 3, 5:
+			return switchInQueryMode(m, msg2.String())
+		case 2:
+			return switchInLabelMode(m, msg)
+		case 6:
+			return m, nil
+		}
+	}
+	return m, nil
 }
 
+func viewChoices(m model) string {
+	// The header
+	s := "\n\n\nWhat do you want to do?\n\n"
+
+	// Iterate over our choices
+	for i, choice := range m.choices {
+
+		// Is the cursor pointing at this choice?
+		cursor := " " // no cursor
+		if m.cursor == i {
+			cursor = ">" // cursor!
+		}
+
+		// Render the row
+		s += fmt.Sprintf("%s %s\n", cursor, choice)
+	}
+
+	// The footer
+	s += "\nPress j to move down. Press k to move up. Press enter to select. Press q to quit.\n\n\n\n"
+
+	// Send the UI for rendering
+	return s
+}
+
+func viewLabelInputs(m model) string {
+	return fmt.Sprintf(
+		` Fields for the Label
+
+ %s
+ %s
+ %s
+ %s
+ %s  
+ %s
+ %s  
+ %s
+ %s
+`,
+		inputStyle.Width(10).Render("Label Name"),
+		m.textinputs[name].View(),
+		inputStyle.Width(2).Render("ID"),
+		m.textinputs[id].View(),
+		inputStyle.Width(5).Render("Value"),
+		m.textinputs[value].View(),
+		inputStyle.Width(6).Render("For ID"),
+		m.textinputs[forid].View(),
+		continueStyle.Render("Continue ->"),
+	) + "\n"
+}
+
+//
+// Function:    View
+//
+// Description: The view on a model controls how it is displayed. It returns strings
+//              for displaying to the user.
+//
 func (m model) View() string {
-    // The header
-    s := "What do you want to do?\n\n"
-
-    // Iterate over our choices
-    for i, choice := range m.choices {
-
-        // Is the cursor pointing at this choice?
-        cursor := " " // no cursor
-        if m.cursor == i {
-            cursor = ">" // cursor!
-        }
-
-        // Is this choice selected?
-        checked := " " // not selected
-        if _, ok := m.selected[i]; ok {
-            checked = "x" // selected!
-        }
-
-        // Render the row
-        s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice)
-    }
-
-    // The footer
-    s += "\nPress q to quit.\n"
-
-    // Send the UI for rendering
-    return s
+	switch m.state {
+	case 0, 1, 3, 5:
+		return viewChoices(m)
+	case 2, 4, 6:
+		return viewLabelInputs(m)
+	}
+	return viewChoices(m)
 }
 
 //
@@ -228,11 +567,11 @@ func (m model) View() string {
 // Inputs:
 //               The inputs are assigned to os.Argv. It should be a dialog
 //               name and the data to use to expand it. Currently made for the
-//				 macOS. 
+//				 macOS.
 //
 // #TODO: make to work for other Oses.
 //
-func main()  {
+func main() {
 	dialog := ""
 	data := make(map[string]string, 0)
 	if len(os.Args) > 1 {
@@ -240,73 +579,77 @@ func main()  {
 		// Get the command or dialog to process.
 		//
 		dialog = os.Args[1]
-		
+
 		//
 		// Get the two template locations.
 		//
 		home := os.Getenv("HOME")
-		progHome,_ := os.Executable()
+		progHome, _ := os.Executable()
 		progHome = filepath.Dir(progHome)
-		templates1 := filepath.Join(progHome,"../Resources/dialogs")
-		templates2 := filepath.Join(home,".config/scriptserver/dialogs")
-		
+		templates1 := filepath.Join(progHome, "../Resources/dialogs")
+		templates2 := filepath.Join(home, ".config/scriptserver/dialogs")
+
 		//
 		// Process the command or the template.
 		//
 		switch dialog {
-			case "list": {
+		case "list":
+			{
 				//
 				// Give the user a json list of dialogs in the program
 				// area and in the user directory.
 				//
 				var nlist []string
 				file, _ := os.Open(templates1)
-				dlist,_ := file.Readdirnames(0) // 0 to read all files and folders
-   				for _, name := range dlist {
-       				nlist = append(nlist,name)
-   				}
+				dlist, _ := file.Readdirnames(0) // 0 to read all files and folders
+				for _, name := range dlist {
+					nlist = append(nlist, name)
+				}
 				file.Close()
 				file, _ = os.Open(templates2)
-				dlist,_ = file.Readdirnames(0)
-					for _, name := range dlist {
-					nlist = append(nlist,name)
+				dlist, _ = file.Readdirnames(0)
+				for _, name := range dlist {
+					nlist = append(nlist, name)
 				}
 				file.Close()
 				nlist = Map(nlist, FilenameWithoutExtension)
 				pjson, err := json.Marshal(nlist)
-   				if err != nil {
-       				log.Fatal("Cannot encode to JSON ", err)
-   				}
+				if err != nil {
+					log.Fatal("Cannot encode to JSON ", err)
+				}
 				fmt.Printf("{ \"dialogs\": %s}\n", pjson)
 			}
-			case "build": {
+		case "build":
+			{
 				//
 				// We are going to build a dialog.
 				//
 				p := tea.NewProgram(initialModel())
-    			if err := p.Start(); err != nil {
-        			fmt.Printf("Alas, there's been an error: %v", err)
-        			os.Exit(1)
-    			}
+				if err := p.Start(); err != nil {
+					fmt.Printf("Alas, there's been an error: %v", err)
+					os.Exit(1)
+				}
+				fmt.Print(buildDialog)
 			}
-			default: {
+		default:
+			{
 				//
 				// Create the rest of the command line into the data needed for the dialog template.
 				//
 				for i := 2; i < len(os.Args); i++ {
 					data[fmt.Sprintf("data%d", i-1)] = os.Args[i]
 				}
-				
+
 				//
 				// Create an error dialog if the dialog can't be found.
 				//
 				var jsonStr string = "{ \"html\": \"<h1>Dialog not found.<h1>\", \"width\": 100, \"height\": 200, \"x\": 200, \"y\": 200}"
-			
+
 				//
 				// Create the two possible file locations.
-				//				
-				templatefile1 := filepath.Join(templates1, fmt.Sprintf("%s.json",dialog))
-				templatefile2 := filepath.Join(templates2, fmt.Sprintf("%s.json",dialog))
+				//
+				templatefile1 := filepath.Join(templates1, fmt.Sprintf("%s.json", dialog))
+				templatefile2 := filepath.Join(templates2, fmt.Sprintf("%s.json", dialog))
 				if fileExists(templatefile1) {
 					//
 					// The dialog is in the Resources directory of the application bundle
@@ -325,9 +668,9 @@ func main()  {
 					// This is a dialog build using a json structure.
 					//
 					re := regexp.MustCompile(`^#.*\r?\n`)
-					jsonStr = re.ReplaceAllString(jsonStr,"")
+					jsonStr = re.ReplaceAllString(jsonStr, "")
 					result := putRequest("http://localhost:9697/api/modal", strings.NewReader(jsonStr))
-					fmt.Printf("%s",result[1:len(result)-1])
+					fmt.Printf("%s", result[1:len(result)-1])
 				} else {
 					//
 					// This is a raw html template that needs the data combined to finish it.
@@ -336,7 +679,7 @@ func main()  {
 					jsonStr = re.ReplaceAllString(jsonStr, " ")
 					renderC := RenderDialogContents(jsonStr, data)
 					result := putRequest("http://localhost:9697/api/dialog", strings.NewReader(renderC))
-					fmt.Printf("%s",result[1:len(result)-1])
+					fmt.Printf("%s", result[1:len(result)-1])
 				}
 			}
 		}
