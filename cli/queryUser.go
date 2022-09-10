@@ -353,7 +353,7 @@ func (m model) SaveStructure() tea.Msg {
 	// Save the structure to a file.
 	//
 	file, _ := json.MarshalIndent(buildDialog, "", " ")
-	header := "#\n"
+	header := "# This a dialog created by the builder.\n"
 	_ = ioutil.WriteFile(m.savefile, []byte(header+string(file)), 0644)
 	return saveSturctureFinishedMsg{m}
 }

@@ -38,3 +38,4 @@ wails dev
 ## Articles about BulletinBoard
 
 - [Building Bulletin Board](https://blog.customct.com/building-bulletin-board)
+- [Adding a Bubbletea CLI Interface](https://blog.customct.com/adding-a-bubbletea-cli-interface)
