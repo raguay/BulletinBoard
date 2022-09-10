@@ -4,7 +4,9 @@ go 1.19
 
 require (
 	github.com/aymerick/raymond v2.0.2+incompatible
+	github.com/charmbracelet/bubbles v0.14.0
 	github.com/charmbracelet/bubbletea v0.22.1
+	github.com/charmbracelet/lipgloss v0.5.0
 	github.com/gin-gonic/gin v1.8.1
 	github.com/wailsapp/wails/v2 v2.0.0-beta.43
 )
@@ -12,8 +14,6 @@ require (
 require (
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/bep/debounce v1.2.1 // indirect
-	github.com/charmbracelet/bubbles v0.14.0 // indirect
-	github.com/charmbracelet/lipgloss v0.5.0 // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect

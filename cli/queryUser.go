@@ -157,15 +157,16 @@ type ModalDialog struct {
 var buildDialog ModalDialog // The dialog structure we need to build
 
 type model struct {
-	orgItems   []string          // beginning list of choices
-	diagItems  []string          // These are the choices for adding to a dialog
-	choices    []string          // These are the current items being shown.
-	cursor     int               // which to-do list item our cursor is pointing at
-	selected   int               // which to-do items are selected
-	state      int               // What state the system is in
-	textinputs []textinput.Model // This contains the input fields for the labels
-	focused    int               // This is the currently focused input
-	err        error             // this will contain any errors from the validators
+	savefile    string            // The file to save the structure
+	orgItems    []string          // beginning list of choices
+	diagItems   []string          // These are the choices for adding to a dialog
+	choices     []string          // These are the current items being shown.
+	cursor      int               // which to-do list item our cursor is pointing at
+	selected    int               // which to-do items are selected
+	state       int               // What state the system is in
+	labelinputs []textinput.Model // This contains the input fields for the labels
+	focused     int               // This is the currently focused input
+	err         error             // this will contain any errors from the validators
 }
 
 type tickMsg struct{}
@@ -197,7 +198,7 @@ func stringValidator(s string) error {
 	return nil
 }
 
-func initialModel() model {
+func initialModel(savefile string) model {
 	var inputs []textinput.Model = make([]textinput.Model, 4)
 	inputs[name] = textinput.New()
 	inputs[name].Placeholder = "Label Name"
@@ -230,14 +231,15 @@ func initialModel() model {
 
 	return model{
 		// Our list of acctions
-		orgItems:   []string{"Add Item", "Add Button", "Save"},
-		diagItems:  []string{"Add label", "Add Input", "Save"},
-		choices:    []string{"Add Item", "Add Button", "Save"},
-		cursor:     0,
-		state:      0,
-		textinputs: inputs,
-		focused:    0,
-		err:        nil,
+		savefile:    savefile,
+		orgItems:    []string{"Add Item", "Add Button", "Save"},
+		diagItems:   []string{"Add label", "Add Input", "Save"},
+		choices:     []string{"Add Item", "Add Button", "Save"},
+		cursor:      0,
+		state:       0,
+		labelinputs: inputs,
+		focused:     0,
+		err:         nil,
 	}
 }
 
@@ -247,7 +249,7 @@ func (m model) Init() tea.Cmd {
 
 // nextInput focuses the next input field
 func (m *model) nextInput() {
-	m.focused = (m.focused + 1) % len(m.textinputs)
+	m.focused = (m.focused + 1) % len(m.labelinputs)
 }
 
 // prevInput focuses the previous input field
@@ -255,7 +257,7 @@ func (m *model) prevInput() {
 	m.focused--
 	// Wrap around
 	if m.focused < 0 {
-		m.focused = len(m.textinputs) - 1
+		m.focused = len(m.labelinputs) - 1
 	}
 }
 
@@ -296,22 +298,22 @@ func (m model) SaveInput() tea.Msg {
 		//
 		var di DialogItem
 		di.ModelType = "label"
-		for numti := len(m.textinputs); numti >= 0; numti-- {
+		for numti := len(m.labelinputs); numti >= 0; numti-- {
 			switch numti {
 			case 0:
-				di.Name = m.textinputs[numti].Value()
+				di.Name = m.labelinputs[numti].Value()
 				break
 
 			case 1:
-				di.Id = m.textinputs[numti].Value()
+				di.Id = m.labelinputs[numti].Value()
 				break
 
 			case 2:
-				di.Value = m.textinputs[numti].Value()
+				di.Value = m.labelinputs[numti].Value()
 				break
 
 			case 3:
-				di.For = m.textinputs[numti].Value()
+				di.For = m.labelinputs[numti].Value()
 				break
 
 			}
@@ -351,7 +353,8 @@ func (m model) SaveStructure() tea.Msg {
 	// Save the structure to a file.
 	//
 	file, _ := json.MarshalIndent(buildDialog, "", " ")
-	_ = ioutil.WriteFile("test.json", file, 0644)
+	header := "#\n"
+	_ = ioutil.WriteFile(m.savefile, []byte(header+string(file)), 0644)
 	return saveSturctureFinishedMsg{m}
 }
 
@@ -410,14 +413,14 @@ func switchInQueryMode(m model, msg string) (tea.Model, tea.Cmd) {
 
 func switchInLabelMode(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
-		cmds []tea.Cmd = make([]tea.Cmd, len(m.textinputs))
+		cmds []tea.Cmd = make([]tea.Cmd, len(m.labelinputs))
 	)
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
-			if m.focused == len(m.textinputs)-1 {
+			if m.focused == len(m.labelinputs)-1 {
 				//
 				// This is the last input, save the inputs
 				//
@@ -432,10 +435,10 @@ func switchInLabelMode(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyTab, tea.KeyCtrlN:
 			m.nextInput()
 		}
-		for i := range m.textinputs {
-			m.textinputs[i].Blur()
+		for i := range m.labelinputs {
+			m.labelinputs[i].Blur()
 		}
-		m.textinputs[m.focused].Focus()
+		m.labelinputs[m.focused].Focus()
 
 	// We handle errors just like any other message
 	case errMsg:
@@ -443,8 +446,8 @@ func switchInLabelMode(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	for i := range m.textinputs {
-		m.textinputs[i], cmds[i] = m.textinputs[i].Update(msg)
+	for i := range m.labelinputs {
+		m.labelinputs[i], cmds[i] = m.labelinputs[i].Update(msg)
 	}
 	return m, tea.Batch(cmds...)
 }
@@ -532,13 +535,13 @@ func viewLabelInputs(m model) string {
  %s
 `,
 		inputStyle.Width(10).Render("Label Name"),
-		m.textinputs[name].View(),
+		m.labelinputs[name].View(),
 		inputStyle.Width(2).Render("ID"),
-		m.textinputs[id].View(),
+		m.labelinputs[id].View(),
 		inputStyle.Width(5).Render("Value"),
-		m.textinputs[value].View(),
+		m.labelinputs[value].View(),
 		inputStyle.Width(6).Render("For ID"),
-		m.textinputs[forid].View(),
+		m.labelinputs[forid].View(),
 		continueStyle.Render("Continue ->"),
 	) + "\n"
 }
@@ -624,12 +627,27 @@ func main() {
 				//
 				// We are going to build a dialog.
 				//
-				p := tea.NewProgram(initialModel())
-				if err := p.Start(); err != nil {
-					fmt.Printf("Alas, there's been an error: %v", err)
-					os.Exit(1)
+				if len(os.Args) < 3 {
+					fmt.Print("\nNot enough arguments. Please give the the dialog a name!\n")
+				} else {
+					//
+					// Initialize the buildDialog  structure. I don't have the buttons done yet, but to test
+					// what I do have has to have this structure. But, every dialog needs a cancel button.
+					//
+					buildDialog.Buttons = make([]DialogButton, 1)
+					buildDialog.Buttons[0].Name = "Cancel"
+					buildDialog.Buttons[0].Id = "cancel"
+					buildDialog.Buttons[0].Action = "cancel"
+
+					//
+					// create the Bubbletea interface for building the new dialog
+					//
+					p := tea.NewProgram(initialModel(filepath.Join(templates2, fmt.Sprintf("%s%s", os.Args[2], ".json"))))
+					if err := p.Start(); err != nil {
+						fmt.Printf("Alas, there's been an error: %v", err)
+						os.Exit(1)
+					}
 				}
-				fmt.Print(buildDialog)
 			}
 		default:
 			{
