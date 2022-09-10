@@ -5,6 +5,8 @@
 
 # BulletinBoard
 
+![BulletinBoard](https://github.com/raguay/BulletinBoard/blob/main/images/BulletinBoard.png)
+
 BulletinBoard is a program for showing information and dialogs to the user. Scripts can use it to get information from the user. It is used by the [EmailIt](https://GitHub.com/raguay/EmailIt) program to ask information from the user for filling in a template. It currently only displays messages sent to it. This is a [Wails 2](https://wails.io/) version of my original [BulletinBoard-NWJS](https://github.com/raguay/BulletinBoard-NWJS) project. I use this program everyday in my workflow.
 
 ## How to build
