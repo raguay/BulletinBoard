@@ -201,7 +201,7 @@ func stringValidator(s string) error {
 func initialModel(savefile string) model {
 	var inputs []textinput.Model = make([]textinput.Model, 4)
 	inputs[name] = textinput.New()
-	inputs[name].Placeholder = "Label Name"
+	inputs[name].Placeholder = ""
 	inputs[name].Focus()
 	inputs[name].CharLimit = 50
 	inputs[name].Width = 52
@@ -209,21 +209,21 @@ func initialModel(savefile string) model {
 	inputs[name].Validate = nameValidator
 
 	inputs[id] = textinput.New()
-	inputs[id].Placeholder = "Label Id"
+	inputs[id].Placeholder = ""
 	inputs[id].CharLimit = 50
 	inputs[id].Width = 52
 	inputs[id].Prompt = ""
 	inputs[id].Validate = nameValidator
 
 	inputs[value] = textinput.New()
-	inputs[value].Placeholder = "Message"
+	inputs[value].Placeholder = ""
 	inputs[value].CharLimit = 200
 	inputs[value].Width = 202
 	inputs[value].Prompt = ""
 	inputs[value].Validate = stringValidator
 
 	inputs[forid] = textinput.New()
-	inputs[forid].Placeholder = "Name of Input"
+	inputs[forid].Placeholder = ""
 	inputs[forid].CharLimit = 50
 	inputs[forid].Width = 52
 	inputs[forid].Prompt = ""
@@ -249,7 +249,16 @@ func (m model) Init() tea.Cmd {
 
 // nextInput focuses the next input field
 func (m *model) nextInput() {
-	m.focused = (m.focused + 1) % len(m.labelinputs)
+  switch m.state {
+  case 2:
+	  m.focused = (m.focused + 1) % len(m.labelinputs)
+    break
+  case 4:
+	  m.focused = (m.focused + 1) % (len(m.labelinputs)-1)
+    break
+  default:
+	  m.focused = (m.focused + 1) % len(m.labelinputs)
+  }
 }
 
 // prevInput focuses the previous input field
@@ -257,7 +266,11 @@ func (m *model) prevInput() {
 	m.focused--
 	// Wrap around
 	if m.focused < 0 {
-		m.focused = len(m.labelinputs) - 1
+    if m.state == 2 {
+		  m.focused = len(m.labelinputs) - 1
+    } else {
+		  m.focused = len(m.labelinputs) - 2
+    }
 	}
 }
 
@@ -302,11 +315,16 @@ func (m model) SaveInput() tea.Msg {
 		di.Id = m.labelinputs[id].Value()
 		di.Value = m.labelinputs[value].Value()
 		di.For = m.labelinputs[forid].Value()
-	  m.labelinputs[name].Prompt = ""
-    m.labelinputs[id].Prompt = ""
-    m.labelinputs[forid].Prompt = ""
-    m.labelinputs[value].Prompt = ""
+	  m.labelinputs[name].SetValue("")
+	  m.labelinputs[name].Focus()
+    m.labelinputs[id].SetValue("")
+    m.labelinputs[id].Blur()
+    m.labelinputs[forid].SetValue("")
+    m.labelinputs[forid].Blur()
+    m.labelinputs[value].SetValue("")
+    m.labelinputs[value].Blur()
     m.focused = name
+    m.cursor = 0
 		buildDialog.Items = append(buildDialog.Items, di)
 		break
 
@@ -320,10 +338,16 @@ func (m model) SaveInput() tea.Msg {
 		di.Id = m.labelinputs[id].Value()
 		di.Value = m.labelinputs[value].Value()
 		di.For = ""
-    m.labelinputs[name].Prompt = ""
-    m.labelinputs[id].Prompt = ""
-    m.labelinputs[value].Prompt = ""
+    m.labelinputs[name].SetValue("")
+	  m.labelinputs[name].Focus()
+    m.labelinputs[id].SetValue("")
+    m.labelinputs[id].Blur()
+    m.labelinputs[forid].SetValue("")
+    m.labelinputs[forid].Blur()
+    m.labelinputs[value].SetValue("")
+    m.labelinputs[value].Blur()
     m.focused = name
+    m.cursor = 0
 		buildDialog.Items = append(buildDialog.Items, di)
 		break
 
@@ -414,7 +438,11 @@ func switchInLabelMode(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
-			if m.focused == len(m.labelinputs)-1 {
+      max := len(m.labelinputs) - 1
+      if m.state == 4 {
+        max = max - 1
+      }
+			if m.focused == max {
 				//
 				// This is the last input, save the inputs
 				//
