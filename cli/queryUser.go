@@ -302,6 +302,11 @@ func (m model) SaveInput() tea.Msg {
 		di.Id = m.labelinputs[id].Value()
 		di.Value = m.labelinputs[value].Value()
 		di.For = m.labelinputs[forid].Value()
+	  m.labelinputs[name].Prompt = ""
+    m.labelinputs[id].Prompt = ""
+    m.labelinputs[forid].Prompt = ""
+    m.labelinputs[value].Prompt = ""
+    m.focused = name
 		buildDialog.Items = append(buildDialog.Items, di)
 		break
 
@@ -315,6 +320,10 @@ func (m model) SaveInput() tea.Msg {
 		di.Id = m.labelinputs[id].Value()
 		di.Value = m.labelinputs[value].Value()
 		di.For = ""
+    m.labelinputs[name].Prompt = ""
+    m.labelinputs[id].Prompt = ""
+    m.labelinputs[value].Prompt = ""
+    m.focused = name
 		buildDialog.Items = append(buildDialog.Items, di)
 		break
 
@@ -546,7 +555,7 @@ func viewInputInputs(m model) string {
 		m.labelinputs[name].View(),
 		inputStyle.Width(2).Render("ID"),
 		m.labelinputs[id].View(),
-		inputStyle.Width(5).Render("Default Value"),
+		inputStyle.Width(13).Render("Default Value"),
 		m.labelinputs[value].View(),
 		continueStyle.Render("Continue ->"),
 	) + "\n"
