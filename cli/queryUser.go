@@ -203,29 +203,29 @@ func initialModel(savefile string) model {
 	inputs[name] = textinput.New()
 	inputs[name].Placeholder = "Label Name"
 	inputs[name].Focus()
-	inputs[name].CharLimit = 20
-	inputs[name].Width = 22
+	inputs[name].CharLimit = 50
+	inputs[name].Width = 52
 	inputs[name].Prompt = ""
 	inputs[name].Validate = nameValidator
 
 	inputs[id] = textinput.New()
 	inputs[id].Placeholder = "Label Id"
-	inputs[id].CharLimit = 20
-	inputs[id].Width = 22
+	inputs[id].CharLimit = 50
+	inputs[id].Width = 52
 	inputs[id].Prompt = ""
 	inputs[id].Validate = nameValidator
 
 	inputs[value] = textinput.New()
 	inputs[value].Placeholder = "Message"
-	inputs[value].CharLimit = 20
-	inputs[value].Width = 22
+	inputs[value].CharLimit = 200
+	inputs[value].Width = 202
 	inputs[value].Prompt = ""
 	inputs[value].Validate = stringValidator
 
 	inputs[forid] = textinput.New()
 	inputs[forid].Placeholder = "Name of Input"
-	inputs[forid].CharLimit = 20
-	inputs[forid].Width = 22
+	inputs[forid].CharLimit = 50
+	inputs[forid].Width = 52
 	inputs[forid].Prompt = ""
 	inputs[forid].Validate = nameValidator
 
@@ -298,32 +298,24 @@ func (m model) SaveInput() tea.Msg {
 		//
 		var di DialogItem
 		di.ModelType = "label"
-		for numti := len(m.labelinputs); numti >= 0; numti-- {
-			switch numti {
-			case 0:
-				di.Name = m.labelinputs[numti].Value()
-				break
-
-			case 1:
-				di.Id = m.labelinputs[numti].Value()
-				break
-
-			case 2:
-				di.Value = m.labelinputs[numti].Value()
-				break
-
-			case 3:
-				di.For = m.labelinputs[numti].Value()
-				break
-
-			}
-		}
+		di.Name = m.labelinputs[name].Value()
+		di.Id = m.labelinputs[id].Value()
+		di.Value = m.labelinputs[value].Value()
+		di.For = m.labelinputs[forid].Value()
 		buildDialog.Items = append(buildDialog.Items, di)
+		break
 
 	case 4:
 		//
 		// Creating a Input
 		//
+		var di DialogItem
+		di.ModelType = "input"
+		di.Name = m.labelinputs[name].Value()
+		di.Id = m.labelinputs[id].Value()
+		di.Value = m.labelinputs[value].Value()
+		di.For = ""
+		buildDialog.Items = append(buildDialog.Items, di)
 		break
 
 	case 6:
@@ -339,10 +331,6 @@ func (m model) SaveInput() tea.Msg {
 	//
 	// Go back to the first state.
 	//
-	fmt.Print(m)
-	m.state = 0
-	m.cursor = 0
-	m.focused = 0
 	return labelInputFinishedMsg{m}
 }
 
@@ -382,10 +370,10 @@ func switchInQueryMode(m model, msg string) (tea.Model, tea.Cmd) {
 	case "enter":
 		switch m.state {
 		case 0:
-			if m.cursor == 1 {
-				return m, m.MakeButton
-			} else if m.cursor == 0 {
+			if m.cursor == 0 {
 				return m, m.MakeItem
+			} else if m.cursor == 1 {
+				return m, m.MakeButton
 			} else {
 				// this would save.
 				return m, m.SaveStructure
@@ -400,9 +388,6 @@ func switchInQueryMode(m model, msg string) (tea.Model, tea.Cmd) {
 				// This would save.
 				return m, m.SaveStructure
 			}
-
-		case 3:
-			return m, m.MakeInput
 
 		case 5:
 			return m, m.MakeButton
@@ -472,10 +457,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case makeInputFinishedMsg:
 		m.choices = m.orgItems
-		m.state = 0
+		m.state = 4
 		return m, nil
 
 	case makeButtonFinishedMsg:
+		m.choices = m.orgItems
 		m.state = 0
 		return m, nil
 
@@ -487,11 +473,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch m.state {
 		case 0, 1, 3, 5:
 			return switchInQueryMode(m, msg2.String())
-		case 2:
+		case 2, 4, 6:
 			return switchInLabelMode(m, msg)
-		case 6:
-			return m, nil
-		}
+    }
 	}
 	return m, nil
 }
@@ -546,6 +530,29 @@ func viewLabelInputs(m model) string {
 	) + "\n"
 }
 
+func viewInputInputs(m model) string {
+	return fmt.Sprintf(
+		` Fields for the Input
+
+ %s
+ %s
+ %s
+ %s
+ %s  
+ %s
+ %s  
+`,
+		inputStyle.Width(10).Render("Input Name"),
+		m.labelinputs[name].View(),
+		inputStyle.Width(2).Render("ID"),
+		m.labelinputs[id].View(),
+		inputStyle.Width(5).Render("Default Value"),
+		m.labelinputs[value].View(),
+		continueStyle.Render("Continue ->"),
+	) + "\n"
+}
+
+
 //
 // Function:    View
 //
@@ -556,10 +563,12 @@ func (m model) View() string {
 	switch m.state {
 	case 0, 1, 3, 5:
 		return viewChoices(m)
-	case 2, 4, 6:
+	case 2, 6:
 		return viewLabelInputs(m)
+  case 4:
+	  return viewInputInputs(m)
 	}
-	return viewChoices(m)
+  return viewChoices(m)
 }
 
 //
