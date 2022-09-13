@@ -164,7 +164,7 @@ type model struct {
 	cursor      int               // which to-do list item our cursor is pointing at
 	selected    int               // which to-do items are selected
 	state       int               // What state the system is in
-	labelinputs []textinput.Model // This contains the input fields for the labels
+	inputs []textinput.Model // This contains the input fields for the labels
 	focused     int               // This is the currently focused input
 	err         error             // this will contain any errors from the validators
 }
@@ -180,12 +180,12 @@ const (
 )
 
 const (
-	hotPink  = lipgloss.Color("#FF06B7")
+	purple  = lipgloss.Color("#9580FF")
 	darkGray = lipgloss.Color("#767676")
 )
 
 var (
-	inputStyle    = lipgloss.NewStyle().Foreground(hotPink)
+	inputStyle    = lipgloss.NewStyle().Foreground(purple)
 	continueStyle = lipgloss.NewStyle().Foreground(darkGray)
 )
 
@@ -217,8 +217,7 @@ func initialModel(savefile string) model {
 
 	inputs[value] = textinput.New()
 	inputs[value].Placeholder = ""
-	inputs[value].CharLimit = 200
-	inputs[value].Width = 202
+	inputs[value].CharLimit = 0
 	inputs[value].Prompt = ""
 	inputs[value].Validate = stringValidator
 
@@ -237,7 +236,7 @@ func initialModel(savefile string) model {
 		choices:     []string{"Add Item", "Add Button", "Save"},
 		cursor:      0,
 		state:       0,
-		labelinputs: inputs,
+		inputs: inputs,
 		focused:     0,
 		err:         nil,
 	}
@@ -251,13 +250,13 @@ func (m model) Init() tea.Cmd {
 func (m *model) nextInput() {
   switch m.state {
   case 2:
-	  m.focused = (m.focused + 1) % len(m.labelinputs)
+	  m.focused = (m.focused + 1) % len(m.inputs)
     break
   case 4:
-	  m.focused = (m.focused + 1) % (len(m.labelinputs)-1)
+	  m.focused = (m.focused + 1) % (len(m.inputs)-1)
     break
   default:
-	  m.focused = (m.focused + 1) % len(m.labelinputs)
+	  m.focused = (m.focused + 1) % len(m.inputs)
   }
 }
 
@@ -267,9 +266,9 @@ func (m *model) prevInput() {
 	// Wrap around
 	if m.focused < 0 {
     if m.state == 2 {
-		  m.focused = len(m.labelinputs) - 1
+		  m.focused = len(m.inputs) - 1
     } else {
-		  m.focused = len(m.labelinputs) - 2
+		  m.focused = len(m.inputs) - 2
     }
 	}
 }
@@ -311,18 +310,22 @@ func (m model) SaveInput() tea.Msg {
 		//
 		var di DialogItem
 		di.ModelType = "label"
-		di.Name = m.labelinputs[name].Value()
-		di.Id = m.labelinputs[id].Value()
-		di.Value = m.labelinputs[value].Value()
-		di.For = m.labelinputs[forid].Value()
-	  m.labelinputs[name].SetValue("")
-	  m.labelinputs[name].Focus()
-    m.labelinputs[id].SetValue("")
-    m.labelinputs[id].Blur()
-    m.labelinputs[forid].SetValue("")
-    m.labelinputs[forid].Blur()
-    m.labelinputs[value].SetValue("")
-    m.labelinputs[value].Blur()
+		di.Name = m.inputs[name].Value()
+		di.Id = m.inputs[id].Value()
+		di.Value = m.inputs[value].Value()
+		di.For = m.inputs[forid].Value()
+    m.inputs[name].Reset()
+    m.inputs[name].SetValue("")
+	  m.inputs[name].Focus()
+    m.inputs[id].Reset()
+    m.inputs[id].SetValue("")
+    m.inputs[id].Blur()
+    m.inputs[forid].Reset()
+    m.inputs[forid].SetValue("")
+    m.inputs[forid].Blur()
+    m.inputs[value].Reset()
+    m.inputs[value].SetValue("")
+    m.inputs[value].Blur()
     m.focused = name
     m.cursor = 0
 		buildDialog.Items = append(buildDialog.Items, di)
@@ -334,18 +337,22 @@ func (m model) SaveInput() tea.Msg {
 		//
 		var di DialogItem
 		di.ModelType = "input"
-		di.Name = m.labelinputs[name].Value()
-		di.Id = m.labelinputs[id].Value()
-		di.Value = m.labelinputs[value].Value()
+		di.Name = m.inputs[name].Value()
+		di.Id = m.inputs[id].Value()
+		di.Value = m.inputs[value].Value()
 		di.For = ""
-    m.labelinputs[name].SetValue("")
-	  m.labelinputs[name].Focus()
-    m.labelinputs[id].SetValue("")
-    m.labelinputs[id].Blur()
-    m.labelinputs[forid].SetValue("")
-    m.labelinputs[forid].Blur()
-    m.labelinputs[value].SetValue("")
-    m.labelinputs[value].Blur()
+    m.inputs[name].Reset()
+    m.inputs[name].SetValue("")
+	  m.inputs[name].Focus()
+    m.inputs[id].Reset()
+    m.inputs[id].SetValue("")
+    m.inputs[id].Blur()
+    m.inputs[forid].Reset()
+    m.inputs[forid].SetValue("")
+    m.inputs[forid].Blur()
+    m.inputs[value].Reset()
+    m.inputs[value].SetValue("")
+    m.inputs[value].Blur()
     m.focused = name
     m.cursor = 0
 		buildDialog.Items = append(buildDialog.Items, di)
@@ -355,7 +362,26 @@ func (m model) SaveInput() tea.Msg {
 		//
 		// Creating a button
 		//
-		break
+    var db DialogButton
+    db.Name = m.inputs[name].Value()
+    db.Id = m.inputs[id].Value()
+    db.Action = m.inputs[value].Value()
+    m.inputs[name].Reset()
+    m.inputs[name].SetValue("")
+	  m.inputs[name].Focus()
+    m.inputs[id].Reset()
+    m.inputs[id].SetValue("")
+    m.inputs[id].Blur()
+    m.inputs[forid].Reset()
+    m.inputs[forid].SetValue("")
+    m.inputs[forid].Blur()
+    m.inputs[value].Reset()
+    m.inputs[value].SetValue("")
+    m.inputs[value].Blur()
+    m.focused = name
+    m.cursor = 0
+    buildDialog.Buttons = append(buildDialog.Buttons, db)
+    break
 
 	default:
 		break
@@ -431,15 +457,15 @@ func switchInQueryMode(m model, msg string) (tea.Model, tea.Cmd) {
 
 func switchInLabelMode(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
-		cmds []tea.Cmd = make([]tea.Cmd, len(m.labelinputs))
+		cmds []tea.Cmd = make([]tea.Cmd, len(m.inputs))
 	)
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
-      max := len(m.labelinputs) - 1
-      if m.state == 4 {
+      max := len(m.inputs) - 1
+      if m.state == 4 || m.state == 6 {
         max = max - 1
       }
 			if m.focused == max {
@@ -457,10 +483,10 @@ func switchInLabelMode(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyTab, tea.KeyCtrlN:
 			m.nextInput()
 		}
-		for i := range m.labelinputs {
-			m.labelinputs[i].Blur()
+		for i := range m.inputs {
+			m.inputs[i].Blur()
 		}
-		m.labelinputs[m.focused].Focus()
+		m.inputs[m.focused].Focus()
 
 	// We handle errors just like any other message
 	case errMsg:
@@ -468,8 +494,8 @@ func switchInLabelMode(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	for i := range m.labelinputs {
-		m.labelinputs[i], cmds[i] = m.labelinputs[i].Update(msg)
+	for i := range m.inputs {
+		m.inputs[i], cmds[i] = m.inputs[i].Update(msg)
 	}
 	return m, tea.Batch(cmds...)
 }
@@ -499,7 +525,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case makeButtonFinishedMsg:
 		m.choices = m.orgItems
-		m.state = 0
+		m.state = 6
 		return m, nil
 
 	case saveSturctureFinishedMsg:
@@ -556,13 +582,13 @@ func viewLabelInputs(m model) string {
  %s
 `,
 		inputStyle.Width(10).Render("Label Name"),
-		m.labelinputs[name].View(),
+		m.inputs[name].View(),
 		inputStyle.Width(2).Render("ID"),
-		m.labelinputs[id].View(),
+		m.inputs[id].View(),
 		inputStyle.Width(5).Render("Value"),
-		m.labelinputs[value].View(),
+		m.inputs[value].View(),
 		inputStyle.Width(6).Render("For ID"),
-		m.labelinputs[forid].View(),
+		m.inputs[forid].View(),
 		continueStyle.Render("Continue ->"),
 	) + "\n"
 }
@@ -580,11 +606,33 @@ func viewInputInputs(m model) string {
  %s  
 `,
 		inputStyle.Width(10).Render("Input Name"),
-		m.labelinputs[name].View(),
+		m.inputs[name].View(),
 		inputStyle.Width(2).Render("ID"),
-		m.labelinputs[id].View(),
+		m.inputs[id].View(),
 		inputStyle.Width(13).Render("Default Value"),
-		m.labelinputs[value].View(),
+		m.inputs[value].View(),
+		continueStyle.Render("Continue ->"),
+	) + "\n"
+}
+
+func viewButtonInputs(m model) string {
+	return fmt.Sprintf(
+		` Fields for a Button
+
+ %s
+ %s
+ %s
+ %s
+ %s  
+ %s
+ %s  
+`,
+		inputStyle.Width(11).Render("Button Name"),
+		m.inputs[name].View(),
+		inputStyle.Width(2).Render("ID"),
+		m.inputs[id].View(),
+		inputStyle.Width(13).Render("Action"),
+		m.inputs[value].View(),
 		continueStyle.Render("Continue ->"),
 	) + "\n"
 }
@@ -594,16 +642,19 @@ func viewInputInputs(m model) string {
 // Function:    View
 //
 // Description: The view on a model controls how it is displayed. It returns strings
-//              for displaying to the user.
+//              for displaying to the user. We select the right view based on the
+//              state of the statemachine.
 //
 func (m model) View() string {
 	switch m.state {
 	case 0, 1, 3, 5:
 		return viewChoices(m)
-	case 2, 6:
+	case 2:
 		return viewLabelInputs(m)
   case 4:
 	  return viewInputInputs(m)
+  case 6:
+    return viewButtonInputs(m)
 	}
   return viewChoices(m)
 }
