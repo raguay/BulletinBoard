@@ -8,7 +8,7 @@ require (
 	github.com/charmbracelet/bubbletea v0.22.1
 	github.com/charmbracelet/lipgloss v0.5.0
 	github.com/gin-gonic/gin v1.8.1
-	github.com/wailsapp/wails/v2 v2.0.0-beta.43
+	github.com/wailsapp/wails/v2 v2.0.0-rc.1.1
 )
 
 require (

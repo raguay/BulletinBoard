@@ -137,7 +137,7 @@
   id="closure"
   style="width: {width}px; height: {height}px; background-color: {$theme.backgroundColor}; color: {$theme.textColor}; font-family: {$theme.font}; font-size: {$theme.fontSize};"
 >
-  <div id="header" data-wails-drag>
+  <div id="header">
     <h3>Bulletin Board</h3>
   </div>
   <div id="main" bind:this={containerDOM}>
@@ -177,6 +177,7 @@
     -webkit-user-select: none;
     user-select: none;
     cursor: default;
+    --wails-draggable: drag;
   }
 
   #main {

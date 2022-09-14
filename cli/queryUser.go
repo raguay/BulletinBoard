@@ -326,8 +326,6 @@ func (m model) SaveInput() tea.Msg {
     m.inputs[value].Reset()
     m.inputs[value].SetValue("")
     m.inputs[value].Blur()
-    m.focused = name
-    m.cursor = 0
 		buildDialog.Items = append(buildDialog.Items, di)
 		break
 
@@ -353,8 +351,6 @@ func (m model) SaveInput() tea.Msg {
     m.inputs[value].Reset()
     m.inputs[value].SetValue("")
     m.inputs[value].Blur()
-    m.focused = name
-    m.cursor = 0
 		buildDialog.Items = append(buildDialog.Items, di)
 		break
 
@@ -378,8 +374,6 @@ func (m model) SaveInput() tea.Msg {
     m.inputs[value].Reset()
     m.inputs[value].SetValue("")
     m.inputs[value].Blur()
-    m.focused = name
-    m.cursor = 0
     buildDialog.Buttons = append(buildDialog.Buttons, db)
     break
 
@@ -505,27 +499,35 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case makeItemFinishedMsg:
 		m.choices = m.diagItems
+    m.cursor = 0
 		m.state = 1
 		return m, nil
 
 	case makeLabelFinishedMsg:
 		m.choices = m.orgItems
+    m.cursor = 0
 		m.state = 2
+    m.focused = name
 		return m, nil
 
 	case labelInputFinishedMsg:
 		m.choices = m.orgItems
+    m.cursor = 0
 		m.state = 0
 		return m, nil
 
 	case makeInputFinishedMsg:
 		m.choices = m.orgItems
+    m.cursor = 0
 		m.state = 4
+    m.focused = name
 		return m, nil
 
 	case makeButtonFinishedMsg:
 		m.choices = m.orgItems
+    m.cursor = 0
 		m.state = 6
+    m.focused = name
 		return m, nil
 
 	case saveSturctureFinishedMsg:
