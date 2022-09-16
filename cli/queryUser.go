@@ -164,8 +164,12 @@ type model struct {
 	cursor      int               // which to-do list item our cursor is pointing at
 	selected    int               // which to-do items are selected
 	state       int               // What state the system is in
-	inputs []textinput.Model // This contains the input fields for the labels
+	inputs []textinput.Model      // This contains the input fields for the labels
 	focused     int               // This is the currently focused input
+  currentQueue []int            // The queue of inputs to use
+  labelqueue   []int            // The queue of inputs for a label
+  inputqueue   []int            // The queue of inputs for a label
+  buttonqueue  []int            // The queue of inputs for a button
 	err         error             // this will contain any errors from the validators
 }
 
@@ -237,6 +241,10 @@ func initialModel(savefile string) model {
 		cursor:      0,
 		state:       0,
 		inputs: inputs,
+    currentQueue: []int{name, id, value, forid},
+    labelqueue:   []int{name, id, value, forid},
+    inputqueue:   []int{name, id, value},
+    buttonqueue:  []int{name, id, value, forid},
 		focused:     0,
 		err:         nil,
 	}
@@ -248,28 +256,25 @@ func (m model) Init() tea.Cmd {
 
 // nextInput focuses the next input field
 func (m *model) nextInput() {
-  switch m.state {
-  case 2:
-	  m.focused = (m.focused + 1) % len(m.inputs)
-    break
-  case 4:
-	  m.focused = (m.focused + 1) % (len(m.inputs)-1)
-    break
-  default:
-	  m.focused = (m.focused + 1) % len(m.inputs)
-  }
+  //
+  // Increment the focused item and wrap around if
+  // too large.
+  //
+	m.focused = (m.focused + 1) % len(m.currentQueue)
 }
 
 // prevInput focuses the previous input field
 func (m *model) prevInput() {
+  //
+  // Decrement the focused item.
+  //
 	m.focused--
-	// Wrap around
+
+	//
+  // If less than zero, wrap around to the highest number.
+  //
 	if m.focused < 0 {
-    if m.state == 2 {
-		  m.focused = len(m.inputs) - 1
-    } else {
-		  m.focused = len(m.inputs) - 2
-    }
+    m.focused = len(m.currentQueue) - 1
 	}
 }
 
@@ -477,9 +482,23 @@ func switchInLabelMode(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyTab, tea.KeyCtrlN:
 			m.nextInput()
 		}
-		for i := range m.inputs {
-			m.inputs[i].Blur()
+		for i := range m.currentQueue {
+			m.inputs[m.currentQueue[i]].Blur()
 		}
+
+    //
+    // Make sure the focused item is in the current queue.
+    //
+    if !contains(m.currentQueue, m.focused) {
+      //
+      // Not there, reset it.
+      //
+      m.focused = m.currentQueue[0]
+    }
+
+    //
+    // Focus the current input.
+    //
 		m.inputs[m.focused].Focus()
 
 	// We handle errors just like any other message
@@ -488,10 +507,22 @@ func switchInLabelMode(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	for i := range m.inputs {
-		m.inputs[i], cmds[i] = m.inputs[i].Update(msg)
+	for i := range m.currentQueue {
+		m.inputs[m.currentQueue[i]], cmds[m.currentQueue[i]] = m.inputs[m.currentQueue[i]].Update(msg)
 	}
 	return m, tea.Batch(cmds...)
+}
+
+//
+// Checking for item inside of an array.
+//
+func contains(a []int, item int) bool {
+	for _, v := range a {
+		if v == item {
+			return true
+		}
+	}
+	return false
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -507,6 +538,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.choices = m.orgItems
     m.cursor = 0
 		m.state = 2
+    m.currentQueue = m.labelqueue
     m.focused = name
 		return m, nil
 
@@ -520,6 +552,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.choices = m.orgItems
     m.cursor = 0
 		m.state = 4
+    m.currentQueue = m.inputqueue
     m.focused = name
 		return m, nil
 
@@ -527,6 +560,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.choices = m.orgItems
     m.cursor = 0
 		m.state = 6
+    m.currentQueue = m.buttonqueue
     m.focused = name
 		return m, nil
 

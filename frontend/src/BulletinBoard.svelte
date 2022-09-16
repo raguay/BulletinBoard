@@ -13,8 +13,8 @@
   let containerDOM = null;
   let minWidth = 300;
   let minHeight = 60;
-  let width = 0;
-  let height = 0;
+  let width = 300;
+  let height = 60;
 
   onMount(async () => {
     $state = "nothing";
@@ -55,48 +55,46 @@
     //
     // Figure out the width and height of the new canvas.
     //
-    width = minWidth;
-    height = minHeight;
+    await tick();
+    await tick();
+    await tick();
+    await tick();
     if (containerDOM !== null) {
-      if (height < containerDOM.clientHeight)
-        height = containerDOM.clientHeight;
-      if (width < containerDOM.clientWidth) width = containerDOM.clientWidth;
       if ($state === "raw") {
         //
         // Check the overrides for a raw state.
         //
+        width = minWidth;
+        height = minHeight;
         if (width < $raw.width) width = $raw.width;
         if (height < $raw.height) height = $raw.height;
 
         //
         // Set the position on the screen.
         //
+        await rt.WindowSetSize(width, height);
         rt.WindowSetPosition($raw.y, $raw.x);
-      }
-      height += 30;
-    }
+      } else {
+        //
+        // Non-raw dialogs have a calculated size.
+        //
+        width = minWidth;
+        height = minHeight;
+        if (height < containerDOM.clientHeight)
+          height = containerDOM.clientHeight;
+        if (width < containerDOM.clientWidth) width = containerDOM.clientWidth;
 
-    //
-    // Set to the determined size;
-    //
-    rt.WindowSetSize(width, height);
+        //
+        // Set to the determined size;
+        //
+        await rt.WindowSetSize(width, height);
+      }
+    }
 
     //
     // The nothing state should force a window hiding. Otherwise, show the window.
     //
     if ($state === "nothing") {
-      //
-      // Setting it small helps get the correct size when shown.
-      //
-      width = 0;
-      height = 0;
-      rt.WindowSetSize(width, height);
-
-      //
-      // Wait an update cycle to let it settle in.
-      //
-      await tick();
-
       //
       // Hide the window.
       //
@@ -129,18 +127,20 @@
       Purple: "#9580FF",
       Red: "#FF9580",
       Yellow: "#FFFF80",
+      boxShadow: "2px 2px 2px #9580ff90",
     };
   }
 </script>
 
 <div
   id="closure"
-  style="width: {width}px; height: {height}px; background-color: {$theme.backgroundColor}; color: {$theme.textColor}; font-family: {$theme.font}; font-size: {$theme.fontSize};"
+  style="background-color: {$theme.backgroundColor}; color: {$theme.textColor}; font-family: {$theme.font}; font-size: {$theme.fontSize};"
+  bind:this={containerDOM}
 >
   <div id="header">
     <h3>Bulletin Board</h3>
   </div>
-  <div id="main" bind:this={containerDOM}>
+  <div id="main">
     {#if $state === "message"}
       <Message />
     {:else if $state === "dialog"}
@@ -165,14 +165,14 @@
     display: flex;
     flex-direction: column;
     margin: 0px;
-    padding: 0px;
-    border-radius: 10px;
+    padding: 10px;
+    border: solid transparent 1px;
     overflow: hidden;
   }
 
   #header {
     height: 20px;
-    margin: 0px;
+    margin-top: -10px;
     padding: 5px;
     -webkit-user-select: none;
     user-select: none;
@@ -194,5 +194,10 @@
     padding: 0px;
     cursor: default;
     font-size: 1 em;
+  }
+
+  h3 {
+    user-select: none;
+    -webkit-user-select: none;
   }
 </style>
