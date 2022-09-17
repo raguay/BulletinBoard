@@ -1,5 +1,5 @@
 ## build
 
 ```zsh
-go build queryUser.go
+go build bbmsg.go
 ```

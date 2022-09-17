@@ -114,22 +114,28 @@
         {/each}
       </select>
     {:else if item.modaltype === "radio"}
-      <input
-        type="radio"
-        id={item.id}
-        {style}
-        name={item.name}
-        bind:group={radiogroup}
-        value={item.value}
-      />
+      <div class="horzdiv">
+        <input
+          type="radio"
+          id={item.id}
+          {style}
+          name={item.name}
+          bind:group={radiogroup}
+          value={item.value}
+        />
+        <label for={item.name}>{item.value}</label>
+      </div>
     {:else if item.modaltype === "checkbox"}
-      <input
-        type="checkbox"
-        id={item.id}
-        {style}
-        name={item.name}
-        bind:checked={item.value}
-      />
+      <div class="horzdiv">
+        <input
+          type="checkbox"
+          id={item.id}
+          {style}
+          name={item.name}
+          bind:checked={item.value}
+        />
+        <label for={item.name}>{item.for}</label>
+      </div>
     {:else if item.modaltype === "color"}
       <input
         type="color"
@@ -266,5 +272,12 @@
   label {
     user-select: none;
     -webkit-user-select: none;
+  }
+
+  .horzdiv {
+    display: flex;
+    flex-direction: row;
+    margin: 0px;
+    padding: 0px;
   }
 </style>
