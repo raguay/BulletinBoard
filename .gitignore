@@ -12,7 +12,7 @@ build/windows
 
 frontend/node_modules
 
-cli/queryUser
+cli/bbmsg
 cli/*.json
 
 # Diagnostic reports (https://nodejs.org/api/report.html)

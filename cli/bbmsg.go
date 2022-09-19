@@ -756,17 +756,16 @@ func main() {
 	//
 	// Get the two template locations.
 	//
-	// TODO: Move away from the scriptserver directory to a specific directory for Bulletinboard
-	//
 	home := os.Getenv("HOME")
 	progHome, _ := os.Executable()
 	progHome = filepath.Dir(progHome)
 	templates1 := filepath.Join(progHome, "../Resources/dialogs") // Installation premade templates. Macos only. TODO: make more generic for other oses.
 	templates2 := filepath.Join(home, ".config/bulletinboard/dialogs")
+	themeDir := filepath.Join(home, ".config/bulletinboard/themes")
 
 	//
 	// Make sure the directory exists and is setup for use.
-	// TODO:
+	//
 	isDir, err := isDirectory(templates2)
 	if err != nil {
 		//
@@ -774,7 +773,23 @@ func main() {
 		//
 	}
 	if !isDir {
+		//
+		// Create the template directory.
+		//
 		os.MkdirAll(templates2, os.ModePerm)
+	}
+
+	isDir, err = isDirectory(themeDir)
+	if err != nil {
+		//
+		// There was an error in getting the directory information.
+		//
+	}
+	if !isDir {
+		//
+		// Create the theme directory.
+		//
+		os.MkdirAll(themeDir, os.ModePerm)
 	}
 
 	//
@@ -800,7 +815,24 @@ func main() {
 				Aliases: []string{"b"},
 				Usage:   "Build a BulletinBoard dialog using a TUI",
 				Action: func(cCtx *cli.Context) error {
-					buildTUI(templates1, templates2)
+					if cCtx.Args().Len() > 0 {
+						buildTUI(templates2, cCtx.Args().Get(0))
+					} else {
+						fmt.Print("Error: You didn't give a name!")
+					}
+					return nil
+				},
+			},
+			{
+				Name:    "deleteTemplate",
+				Aliases: []string{"delt"},
+				Usage:   "Delete a template",
+				Action: func(cCtx *cli.Context) error {
+					if cCtx.Args().Len() > 0 {
+						deleteTemplate(templates2, cCtx.Args().Get(0))
+					} else {
+						fmt.Print("Error: you didn't give a template name.")
+					}
 					return nil
 				},
 			},
@@ -823,7 +855,11 @@ func main() {
 						Aliases: []string{"t"},
 						Usage:   "Send a template to the BulletinBoard",
 						Action: func(cCtx *cli.Context) error {
-							sendTemplate(templates1, templates2, cCtx.Args().Get(0), cCtx.Args())
+							if cCtx.Args().Len() > 0 {
+								sendTemplate(templates1, templates2, cCtx.Args().Get(0), cCtx.Args())
+							} else {
+								fmt.Print("You didn't give a template name.")
+							}
 							return nil
 						},
 					},
@@ -832,7 +868,66 @@ func main() {
 						Aliases: []string{"m"},
 						Usage:   "Send a message to the BulletinBoard",
 						Action: func(cCtx *cli.Context) error {
-							sendMessage(cCtx.Args().Get(0))
+							if cCtx.Args().Len() > 0 {
+								sendMessage(cCtx.Args().Get(0))
+							} else {
+								fmt.Print("You didn't give a message!")
+							}
+							return nil
+						},
+					},
+				},
+			},
+			{
+				Name:    "theme",
+				Aliases: []string{"thm"},
+				Usage:   "Interact with the themes for BulletinBoard",
+				Subcommands: []*cli.Command{
+					{
+						Name:    "make",
+						Aliases: []string{"mk"},
+						Usage:   "Create a new theme.",
+						Action: func(cCtx *cli.Context) error {
+							if cCtx.Args().Len() > 0 {
+								createTheme(themeDir, cCtx.Args().Get(0))
+							} else {
+								fmt.Print("Error: You didn't give a name.")
+							}
+							return nil
+						},
+					},
+					{
+						Name:    "load",
+						Aliases: []string{"ld"},
+						Usage:   "Load a theme.",
+						Action: func(cCtx *cli.Context) error {
+							if cCtx.Args().Len() > 0 {
+								loadTheme(themeDir, cCtx.Args().Get(0))
+							} else {
+								fmt.Print("Error: You didn't give a name!")
+							}
+							return nil
+						},
+					},
+					{
+						Name:    "deleteTheme",
+						Aliases: []string{"delth"},
+						Usage:   "Delete a theme",
+						Action: func(cCtx *cli.Context) error {
+							if cCtx.Args().Len() > 0 {
+								deleteTheme(themeDir, cCtx.Args().Get(0))
+							} else {
+								fmt.Print("Error: You didn't give a theme name.")
+							}
+							return nil
+						},
+					},
+					{
+						Name:    "thmlist",
+						Aliases: []string{"listthm"},
+						Usage:   "List the available themes.",
+						Action: func(ctx *cli.Context) error {
+							listThemes(themeDir)
 							return nil
 						},
 					},
@@ -843,6 +938,78 @@ func main() {
 
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func listThemes(themeDir string) {
+	//
+	// Give the user a json list of themes in the user directories.
+	//
+	var nlist []string
+	file, _ := os.Open(themeDir)
+	dlist, _ := file.Readdirnames(0) // 0 to read all files and folders
+	for _, name := range dlist {
+		nlist = append(nlist, name)
+	}
+	file.Close()
+	nlist = Map(nlist, FilenameWithoutExtension)
+	pjson, err := json.Marshal(nlist)
+	if err != nil {
+		log.Fatal("Cannot encode to JSON ", err)
+	}
+	fmt.Printf("{ \"themes\": %s}\n", pjson)
+}
+
+func deleteTheme(themeDir string, theme string) {
+	thmpath := filepath.Join(themeDir, fmt.Sprintf("%s.json", theme))
+	if fileExists(thmpath) {
+		//
+		// It exists, so remove it.
+		//
+		os.Remove(thmpath)
+	} else {
+		fmt.Printf("The theme, %s, doesn't exist.", theme)
+	}
+}
+
+func deleteTemplate(templateDir string, template string) {
+	templatepath := filepath.Join(templateDir, fmt.Sprintf("%s.json", template))
+	if fileExists(templatepath) {
+		//
+		// It exists, so remove it.
+		//
+		os.Remove(templatepath)
+	} else {
+		fmt.Printf("The template, %s, doesn't exist.", template)
+	}
+}
+
+func loadTheme(themeDir string, theme string) {
+	themefile := filepath.Join(themeDir, fmt.Sprintf("%s.json", theme))
+	if fileExists(themefile) {
+		themestr, err := os.ReadFile(themefile)
+		if err != nil {
+			//
+			// There was an error. abort.
+			//
+			os.Exit(-1)
+		}
+		bodyStr := fmt.Sprintf("{\"theme\": \"%s\"}", themestr)
+		result := putRequest("http://localhost:9697/api/theme", strings.NewReader(bodyStr))
+		fmt.Printf("%s", result[1:len(result)-1])
+	} else {
+		fmt.Printf("The theme, %s, doesn't exist.", theme)
+	}
+}
+
+func createTheme(themeDir string, theme string) {
+	themefile := filepath.Join(themeDir, fmt.Sprintf("%s.json", theme))
+	if fileExists(themefile) {
+		fmt.Printf("The theme, %s, already exists.", theme)
+	} else {
+		//
+		// Create the theme. TODO:
+		//
 	}
 }
 
@@ -883,30 +1050,26 @@ func listTemplates(templates1 string, templates2 string) {
 	fmt.Printf("{ \"dialogs\": %s}\n", pjson)
 }
 
-func buildTUI(templates1 string, templates2 string) {
+func buildTUI(templatesDir string, name string) {
 	//
 	// We are going to build a dialog.
 	//
-	if len(os.Args) < 3 {
-		fmt.Print("\nNot enough arguments. Please give the the dialog a name!\n")
-	} else {
-		//
-		// Initialize the buildDialog  structure. I don't have the buttons done yet, but to test
-		// what I do have has to have this structure. But, every dialog needs a cancel button.
-		//
-		buildDialog.Buttons = make([]DialogButton, 1)
-		buildDialog.Buttons[0].Name = "Cancel"
-		buildDialog.Buttons[0].Id = "cancel"
-		buildDialog.Buttons[0].Action = "cancel"
+	//
+	// Initialize the buildDialog  structure. I don't have the buttons done yet, but to test
+	// what I do have has to have this structure. But, every dialog needs a cancel button.
+	//
+	buildDialog.Buttons = make([]DialogButton, 1)
+	buildDialog.Buttons[0].Name = "Cancel"
+	buildDialog.Buttons[0].Id = "cancel"
+	buildDialog.Buttons[0].Action = "cancel"
 
-		//
-		// create the Bubbletea interface for building the new dialog
-		//
-		p := tea.NewProgram(initialModel(filepath.Join(templates2, fmt.Sprintf("%s%s", os.Args[2], ".json"))))
-		if err := p.Start(); err != nil {
-			fmt.Printf("Alas, there's been an error: %v", err)
-			os.Exit(1)
-		}
+	//
+	// create the Bubbletea interface for building the new dialog
+	//
+	p := tea.NewProgram(initialModel(filepath.Join(templatesDir, fmt.Sprintf("%s.json", name))))
+	if err := p.Start(); err != nil {
+		fmt.Printf("Alas, there's been an error: %v", err)
+		os.Exit(1)
 	}
 }
 
