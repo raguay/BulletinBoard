@@ -195,6 +195,8 @@ var buildDialog ModalDialog // The dialog structure we need to build
 
 type model struct {
 	savefile     string            // The file to save the structure
+	inputchoice  int               // The input number chosen
+	inputName    string            // The name for the input type being created.
 	orgItems     []string          // beginning list of choices
 	diagItems    []string          // These are the choices for adding to a dialog
 	choices      []string          // These are the current items being shown.
@@ -205,7 +207,7 @@ type model struct {
 	focused      int               // This is the currently focused input
 	currentQueue []int             // The queue of inputs to use
 	labelqueue   []int             // The queue of inputs for a label
-	inputqueue   []int             // The queue of inputs for a label
+	inputqueue   []int             // The queue of inputs for a input
 	buttonqueue  []int             // The queue of inputs for a button
 	err          error             // this will contain any errors from the validators
 }
@@ -243,38 +245,40 @@ func initialModel(savefile string) model {
 	var inputs []textinput.Model = make([]textinput.Model, 4)
 	inputs[name] = textinput.New()
 	inputs[name].Placeholder = ""
-	inputs[name].Focus()
-	inputs[name].CharLimit = 50
-	inputs[name].Width = 52
+	inputs[name].CharLimit = 100
+	inputs[name].Width = 102
 	inputs[name].Prompt = ""
 	inputs[name].Validate = nameValidator
 
 	inputs[id] = textinput.New()
 	inputs[id].Placeholder = ""
-	inputs[id].CharLimit = 50
-	inputs[id].Width = 52
+	inputs[id].CharLimit = 100
+	inputs[id].Width = 102
 	inputs[id].Prompt = ""
 	inputs[id].Validate = nameValidator
 
 	inputs[value] = textinput.New()
 	inputs[value].Placeholder = ""
-	inputs[value].CharLimit = 0
+	inputs[value].CharLimit = 100
+	inputs[value].Width = 102
 	inputs[value].Prompt = ""
 	inputs[value].Validate = stringValidator
 
 	inputs[forid] = textinput.New()
 	inputs[forid].Placeholder = ""
-	inputs[forid].CharLimit = 50
-	inputs[forid].Width = 52
+	inputs[forid].CharLimit = 100
+	inputs[forid].Width = 102
 	inputs[forid].Prompt = ""
 	inputs[forid].Validate = nameValidator
 
 	return model{
 		// Our list of acctions
 		savefile:     savefile,
-		orgItems:     []string{"Add Item", "Add Button", "Save"},
-		diagItems:    []string{"Add label", "Add Input", "Save"},
-		choices:      []string{"Add Item", "Add Button", "Save"},
+		inputName:    "input",
+		inputchoice:  0,
+		orgItems:     []string{"Add Item", "Add Button", "Test", "Save"},
+		diagItems:    []string{"Add label", "Add Input", "Add Selection", "Add Selection Option", "Add Radio", "Add Checkbox", "Add Color", "Add Date", "Add Datetime", "Add Email", "Add Month", "Add Password", "Add Telephone", "Add Time", "Add Url", "Save"},
+		choices:      []string{"Add Item", "Add Button", "Test", "Save"},
 		cursor:       0,
 		state:        0,
 		inputs:       inputs,
@@ -313,6 +317,17 @@ func (m *model) prevInput() {
 	if m.focused < 0 {
 		m.focused = len(m.currentQueue) - 1
 	}
+}
+
+type testDialogFinish struct{ m model }
+
+func (m model) testDialog() tea.Msg {
+	//
+	// Send the dialog to BulletinBoard
+	//
+	file, _ := json.MarshalIndent(buildDialog, "", " ")
+	putRequest("http://localhost:9697/api/modal", strings.NewReader(string(file)))
+	return testDialogFinish{m}
 }
 
 type makeItemFinishedMsg struct{ m model }
@@ -356,18 +371,7 @@ func (m model) SaveInput() tea.Msg {
 		di.Id = m.inputs[id].Value()
 		di.Value = m.inputs[value].Value()
 		di.For = m.inputs[forid].Value()
-		m.inputs[name].Reset()
-		m.inputs[name].SetValue("")
-		m.inputs[name].Focus()
-		m.inputs[id].Reset()
-		m.inputs[id].SetValue("")
-		m.inputs[id].Blur()
-		m.inputs[forid].Reset()
-		m.inputs[forid].SetValue("")
-		m.inputs[forid].Blur()
-		m.inputs[value].Reset()
-		m.inputs[value].SetValue("")
-		m.inputs[value].Blur()
+		m.resetInputs()
 		buildDialog.Items = append(buildDialog.Items, di)
 		break
 
@@ -376,23 +380,12 @@ func (m model) SaveInput() tea.Msg {
 		// Creating a Input
 		//
 		var di DialogItem
-		di.ModelType = "input"
+		di.ModelType = strings.ToLower(m.inputName)
 		di.Name = m.inputs[name].Value()
 		di.Id = m.inputs[id].Value()
 		di.Value = m.inputs[value].Value()
 		di.For = ""
-		m.inputs[name].Reset()
-		m.inputs[name].SetValue("")
-		m.inputs[name].Focus()
-		m.inputs[id].Reset()
-		m.inputs[id].SetValue("")
-		m.inputs[id].Blur()
-		m.inputs[forid].Reset()
-		m.inputs[forid].SetValue("")
-		m.inputs[forid].Blur()
-		m.inputs[value].Reset()
-		m.inputs[value].SetValue("")
-		m.inputs[value].Blur()
+		m.resetInputs()
 		buildDialog.Items = append(buildDialog.Items, di)
 		break
 
@@ -404,18 +397,7 @@ func (m model) SaveInput() tea.Msg {
 		db.Name = m.inputs[name].Value()
 		db.Id = m.inputs[id].Value()
 		db.Action = m.inputs[value].Value()
-		m.inputs[name].Reset()
-		m.inputs[name].SetValue("")
-		m.inputs[name].Focus()
-		m.inputs[id].Reset()
-		m.inputs[id].SetValue("")
-		m.inputs[id].Blur()
-		m.inputs[forid].Reset()
-		m.inputs[forid].SetValue("")
-		m.inputs[forid].Blur()
-		m.inputs[value].Reset()
-		m.inputs[value].SetValue("")
-		m.inputs[value].Blur()
+		m.resetInputs()
 		buildDialog.Buttons = append(buildDialog.Buttons, db)
 		break
 
@@ -427,6 +409,17 @@ func (m model) SaveInput() tea.Msg {
 	// Go back to the first state.
 	//
 	return labelInputFinishedMsg{m}
+}
+
+func (m model) resetInputs() {
+	m.inputs[name].Reset()
+	m.inputs[name].SetValue("")
+	m.inputs[id].Reset()
+	m.inputs[id].SetValue("")
+	m.inputs[forid].Reset()
+	m.inputs[forid].SetValue("")
+	m.inputs[value].Reset()
+	m.inputs[value].SetValue("")
 }
 
 type saveSturctureFinishedMsg struct{ m model }
@@ -469,6 +462,8 @@ func switchInQueryMode(m model, msg string) (tea.Model, tea.Cmd) {
 				return m, m.MakeItem
 			} else if m.cursor == 1 {
 				return m, m.MakeButton
+			} else if m.cursor == 2 {
+				return m, m.testDialog
 			} else {
 				// this would save.
 				return m, m.SaveStructure
@@ -477,11 +472,61 @@ func switchInQueryMode(m model, msg string) (tea.Model, tea.Cmd) {
 		case 1:
 			if m.cursor == 0 {
 				return m, m.MakeLabel
-			} else if m.cursor == 1 {
-				return m, m.MakeInput
-			} else if m.cursor == 2 {
+			} else if m.cursor == 15 {
 				// This would save.
 				return m, m.SaveStructure
+			} else {
+				//
+				// Make this generic for one of the many input types.
+				//
+				switch m.cursor {
+				case 1:
+					m.inputName = "Input"
+					break
+				case 2:
+					m.inputName = "Selection"
+					break
+				case 3:
+					m.inputName = "Option"
+					break
+				case 4:
+					m.inputName = "Radio"
+					break
+				case 5:
+					m.inputName = "Checkbox"
+					break
+				case 6:
+					m.inputName = "Color"
+					break
+				case 7:
+					m.inputName = "Date"
+					break
+				case 8:
+					m.inputName = "Datetime"
+					break
+				case 9:
+					m.inputName = "Email"
+					break
+				case 10:
+					m.inputName = "Month"
+					break
+				case 11:
+					m.inputName = "Password"
+					break
+				case 12:
+					m.inputName = "Telephone"
+					break
+				case 13:
+					m.inputName = "Time"
+					break
+				case 14:
+					m.inputName = "Url"
+					break
+				case 15:
+					m.inputName = "Week"
+					break
+				}
+				return m, m.MakeInput
 			}
 
 		case 5:
@@ -500,11 +545,7 @@ func switchInLabelMode(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
-			max := len(m.inputs) - 1
-			if m.state == 4 || m.state == 6 {
-				max = max - 1
-			}
-			if m.focused == max {
+			if m.focused == len(m.currentQueue)-1 {
 				//
 				// This is the last input, save the inputs
 				//
@@ -565,6 +606,9 @@ func contains(a []int, item int) bool {
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg2 := msg.(type) {
 
+	case testDialogFinish:
+		return m, nil
+
 	case makeItemFinishedMsg:
 		m.choices = m.diagItems
 		m.cursor = 0
@@ -587,6 +631,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case makeInputFinishedMsg:
 		m.choices = m.orgItems
+		m.inputchoice = m.cursor
 		m.cursor = 0
 		m.state = 4
 		m.currentQueue = m.inputqueue
@@ -668,7 +713,7 @@ func viewLabelInputs(m model) string {
 
 func viewInputInputs(m model) string {
 	return fmt.Sprintf(
-		` Fields for the Input
+		` Fields for the %s
 
  %s
  %s
@@ -678,7 +723,8 @@ func viewInputInputs(m model) string {
  %s
  %s  
 `,
-		inputStyle.Width(10).Render("Input Name"),
+		m.inputName,
+		inputStyle.Width(20).Render(fmt.Sprintf("%s's Name", m.inputName)),
 		m.inputs[name].View(),
 		inputStyle.Width(2).Render("ID"),
 		m.inputs[id].View(),

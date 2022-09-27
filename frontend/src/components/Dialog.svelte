@@ -11,7 +11,7 @@
 
   let inputTypes = [
     "input",
-    "selectbeg",
+    "selection",
     "radio",
     "checkbox",
     "color",
@@ -105,7 +105,7 @@
         type="text"
         bind:value={item.value}
       />
-    {:else if item.modaltype === "selectbeg"}
+    {:else if item.modaltype === "selection"}
       <select id={item.id} name={item.name} bind:value={item.value} {style}>
         {#each $dialog.items as options}
           {#if options.modaltype === "option"}
