@@ -1,0 +1,31 @@
+# A test dialog asking for the users age.
+{
+  "items": [
+    {
+      "modaltype": "label",
+      "name": "question",
+      "id": "question",
+      "value": "What is your age?",
+      "for": "answer"
+    },
+    {
+      "modaltype": "input",
+      "name": "answer",
+      "id": "answer",
+      "value": "10",
+      "for": ""
+    }
+  ],
+  "buttons": [
+    {
+      "name": "Okay",
+      "id": "Okay",
+      "action": "submit"
+    },
+    {
+      "name": "Cancel",
+      "id": "Cancel",
+      "action": "cancel"
+    }
+  ]
+}

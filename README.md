@@ -7,7 +7,17 @@
 
 ![BulletinBoard](https://github.com/raguay/BulletinBoard/blob/main/images/BulletinBoard.png)
 
-BulletinBoard is a program for showing information and dialogs to the user. Scripts can use it to get information from the user. It is used by the [EmailIt](https://GitHub.com/raguay/EmailIt) program to ask information from the user for filling in a template. It currently only displays messages sent to it. This is a [Wails 2](https://wails.io/) version of my original [BulletinBoard-NWJS](https://github.com/raguay/BulletinBoard-NWJS) project. I use this program everyday in my workflow.
+BulletinBoard is a program for showing information and dialogs to the user. Scripts can use it to get information from the user. It is used by the [EmailIt](https://GitHub.com/raguay/EmailIt) program to ask information from the user for filling in a template. Custom dialogs are easily created using the cli dialog builder. 
+
+![Building a Dialog](https://github.com/raguay/BulletinBoard/blob/main/images/useryQuery-demo.gif)
+
+This is a [Wails 2](https://wails.io/) version of my original [BulletinBoard-NWJS](https://github.com/raguay/BulletinBoard-NWJS) project. I use this program everyday in my workflow. I'm hopeful that you will find it useful as well. You can discuss about this program in the [discussions board](https://github.com/raguay/BulletinBoard/discussions).
+
+## Table of Contents
+
+- [How to Build](#how-to-build)
+- [Using BulletinBoard](#using-bulletinboard)
+- [Articles about BulletinBoard](#articles-about-bulletinboard)
 
 ## How to build
 
@@ -29,13 +39,21 @@ Or, install the [mask](https://github.com/jacobdeichert/mask) script runner and 
 mask build
 ```
 
-The executable file will be created in the `build/bin` directory. I've only used this program on a macOS system.
+The mask script file will also package the default dialogs for the user to use. If you use the wails build command to make the binary, you would need to copy the `./dialogs` directory contents to your `~/.config/bulletinboard/dialogs` directory to use them.
+
+The executable file will be created in the `build/bin` directory. 
 
 To run the development environment, you type:
 
 ```sh
 wails dev
 ```
+
+Alternatively, you can install and use the builds in the releases page. I've only used this program on a macOS system, but it should build and run okay on other OSes. I hopefully will make some builds for Windows and Linux soon.
+
+## Using BulletinBoard
+
+
 
 ## Articles about BulletinBoard
 

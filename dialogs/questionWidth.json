@@ -1,0 +1,29 @@
+{
+"html": "<label>{{data1}}</label>
+  <input id='name' type='text' value='{{data2}}' autofocus ></input>
+  <button type='button' onclick='globalThis.sendBack()'>Okay</button>
+  <style>
+    button {
+      margin: 10px auto 10px auto;
+      background-color: gray;
+    }
+
+    #dialog {
+      width: 200px;
+      height: 80px;
+      align-content: center;
+      align-items: center;
+      text-align: center;
+    }
+  </style>
+  <script>
+    globalThis.sendBack = function() {
+      globalThis.BBData.dialogStore.dialogResult = document.getElementById('name').value; 
+      globalThis.BBData.dialogStore.callBack();
+    }
+  </script>", 
+  "width": {{data3}}, 
+  "height": 80, 
+  "x": 400, 
+  "y": 200
+}

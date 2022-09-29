@@ -265,8 +265,11 @@
   }
 
   input,
-  input:active {
+  input:active,
+  select,
+  select:active {
     outline-style: none;
+    margin: 5px 10px;
   }
 
   label {

@@ -840,7 +840,12 @@ func main() {
 		HelpName:  "bbmsg",
 		UsageText: "build <name>\nlist\nsend message|template <data1> <data2>...",
 		Action: func(cCtx *cli.Context) error {
-			mainUI()
+			if cCtx.Args().Len() == 0 {
+				//
+				// Only run the main if there isn't any arguments. Miss typing an argument will run here.
+				//
+				mainUI()
+			}
 			return nil
 		},
 		Commands: []*cli.Command{
