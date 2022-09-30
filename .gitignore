@@ -12,6 +12,7 @@ build/windows
 frontend/node_modules
 
 *.zip
+.DS_Store
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
