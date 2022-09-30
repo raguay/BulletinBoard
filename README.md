@@ -53,7 +53,13 @@ Alternatively, you can install and use the builds in the releases page. I've onl
 
 ## Using BulletinBoard
 
+The first thing to be done is to create a command line alias to the main program in order to use the command line interface. To do that, add the following for the shell config file of your shell:
 
+```sh
+alias bb="/Applications/BulletinBoard.app/Contents/macOS/BulletinBoard"
+```
+
+Now you can use it in the command line with `bb`. Be careful not to use the command line without any arguments as that will run the gui Application.
 
 ## Articles about BulletinBoard
 
