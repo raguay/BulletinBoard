@@ -269,7 +269,7 @@ func initialModel(savefile string) model {
 		currentQueue: []int{name, id, value, forid},
 		labelqueue:   []int{name, id, value, forid},
 		inputqueue:   []int{name, id, value},
-		buttonqueue:  []int{name, id, value, forid},
+		buttonqueue:  []int{name, id, value},
 		focused:      0,
 		err:          nil,
 	}
@@ -597,6 +597,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.choices = m.diagItems
 		m.cursor = 0
 		m.state = 1
+		m.focused = name
 		return m, nil
 
 	case makeLabelFinishedMsg:
@@ -611,6 +612,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.choices = m.orgItems
 		m.cursor = 0
 		m.state = 0
+		m.focused = name
 		return m, nil
 
 	case makeInputFinishedMsg:
@@ -748,17 +750,45 @@ func viewButtonInputs(m model) string {
 //              state of the statemachine.
 //
 func (m model) View() string {
+	result := ""
 	switch m.state {
 	case 0, 1, 3, 5:
-		return viewChoices(m)
+		result = viewChoices(m)
+		break
 	case 2:
-		return viewLabelInputs(m)
+		result = viewLabelInputs(m)
+		break
 	case 4:
-		return viewInputInputs(m)
+		result = viewInputInputs(m)
+		break
 	case 6:
-		return viewButtonInputs(m)
+		result = viewButtonInputs(m)
+		break
 	}
-	return viewChoices(m)
+
+	//
+	// Make sure the inputs are not selected.
+	//
+	for i := range m.currentQueue {
+		m.inputs[m.currentQueue[i]].Blur()
+	}
+
+	//
+	// Make sure the focused item is in the current queue.
+	//
+	if !contains(m.currentQueue, m.focused) {
+		//
+		// Not there, reset it.
+		//
+		m.focused = m.currentQueue[0]
+	}
+
+	//
+	// Focus the current input.
+	//
+	m.inputs[m.focused].Focus()
+
+	return result
 }
 
 func isDirectory(path string) (bool, error) {
