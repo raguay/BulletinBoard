@@ -9,7 +9,7 @@
 
 BulletinBoard is a program for showing information and dialogs to the user. Scripts can use it to get information from the user. It is used by the [EmailIt](https://GitHub.com/raguay/EmailIt) program to ask information from the user for filling in a template. Custom dialogs are easily created using the cli dialog builder. 
 
-![Building a Dialog](https://github.com/raguay/BulletinBoard/blob/main/images/useryQuery-demo.gif)
+![Building a Dialog](https://github.com/raguay/BulletinBoard/blob/main/images/TuiDemo.gif)
 
 This is a [Wails 2](https://wails.io/) version of my original [BulletinBoard-NWJS](https://github.com/raguay/BulletinBoard-NWJS) project. I use this program everyday in my workflow. I'm hopeful that you will find it useful as well. You can discuss about this program in the [discussions board](https://github.com/raguay/BulletinBoard/discussions).
 
