@@ -59,7 +59,11 @@ The first thing to be done is to create a command line alias to the main program
 alias bb="/Applications/BulletinBoard.app/Contents/macOS/BulletinBoard"
 ```
 
-Now you can use it in the command line with `bb`. Be careful not to use the command line without any arguments as that will run the gui Application.
+Now you can use it in the command line with `bb`. Be careful not to use the command line without any arguments as that will run the gui Application. If you run `bb help` you will get the list of supported commands.
+
+![BulletinBoard CLI Commands](https://github.com/raguay/BulletinBoard/blob/main/images/bbcli-help.png)
+
+Using `bb build <name>`, where `<name>` is the name of the template, you will be given the template builder shown above in the introduction. `bb deleteTemplate <name>` will delete the given template. `bb list` will list all the templates both given with the program and the user defined templates. `bb send message <message>` will send the `<message>` in quotes to the bulletinboard program to display to the user just the message. `bb send template <name>` will send the `<name>` template to the BulletinBoard program to show the user. When the user presses a cancel button, the cancel button is given in the json return structure. If a button with the `submit` command will return all the input type elements with their values in a json structure. This allows BublletinBoard to be used by other programs to get information from the user.
 
 ## Articles about BulletinBoard
 
