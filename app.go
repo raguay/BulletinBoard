@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
-	"github.com/gin-gonic/gin"
-	rt "github.com/wailsapp/wails/v2/pkg/runtime"
 	"net/http"
 	"net/url"
 	"os"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	rt "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // App struct
@@ -22,7 +23,6 @@ func NewApp() *App {
 }
 
 func (a *App) domReady(ctx context.Context) {
-
 }
 
 func (a *App) shutdown(ctx context.Context) {
@@ -163,7 +163,7 @@ func backend(a *App, ctx context.Context) {
 			rt.EventsOff(ctx, "dialogreturn")
 		})
 		for running {
-			time.Sleep(time.Second)
+			time.Sleep(time.Millisecond)
 		}
 	})
 
@@ -186,13 +186,12 @@ func backend(a *App, ctx context.Context) {
 		// Get the return.
 		//
 		running := true
-		rt.EventsOn(ctx, "dialogreturn", func(optionalData ...interface{}) {
+		rt.EventsOnce(ctx, "dialogreturn", func(optionalData ...interface{}) {
 			c.JSON(http.StatusOK, optionalData)
 			running = false
-			rt.EventsOff(ctx, "dialogreturn")
 		})
 		for running {
-			time.Sleep(time.Second)
+			time.Sleep(time.Millisecond)
 		}
 	})
 

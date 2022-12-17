@@ -4,14 +4,6 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
-	"github.com/aymerick/raymond"
-	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/urfave/cli/v2"
-	"github.com/wailsapp/wails/v2"
-	"github.com/wailsapp/wails/v2/pkg/options"
-	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	"io"
 	"io/ioutil"
 	"log"
@@ -23,21 +15,29 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/aymerick/raymond"
+	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/urfave/cli/v2"
+	"github.com/wailsapp/wails/v2"
+	"github.com/wailsapp/wails/v2/pkg/options"
+	"github.com/wailsapp/wails/v2/pkg/options/mac"
 )
 
 //
 // The following is for the cli processing.
 //
 
-//
 // Function:          RenderDialogContents
 //
 // Description:       This function is used to process and render the contents of a dialog.
 //
 // Inputs:
-//                   template      The template to use
-//                   data          The data to use to render the template
 //
+//	template      The template to use
+//	data          The data to use to render the template
 func RenderDialogContents(template string, data map[string]string) string {
 	//
 	// Render the current for the first pass.
@@ -53,16 +53,16 @@ func RenderDialogContents(template string, data map[string]string) string {
 	return page
 }
 
-//
 // Function:     getRequest
 //
 // Description:  This method will issue a get request with the data sent
-//               as json in the body.
+//
+//	as json in the body.
 //
 // Inputs:
-//               url        The url to send the request
-//               data       An io.Reader pointing to a json string
 //
+//	url        The url to send the request
+//	data       An io.Reader pointing to a json string
 func getRequest(url string, data io.Reader) string {
 	client := &http.Client{}
 	req, err := http.NewRequest(http.MethodGet, url, data)
@@ -87,16 +87,16 @@ func getRequest(url string, data io.Reader) string {
 	return string(body)
 }
 
-//
 // Function:     putRequest
 //
 // Description:  This method will issue a put request with the data sent
-//               as json in the body.
+//
+//	as json in the body.
 //
 // Inputs:
-//               url        The url to send the request
-//               data       An io.Reader pointing to a json string
 //
+//	url        The url to send the request
+//	data       An io.Reader pointing to a json string
 func putRequest(url string, data io.Reader) string {
 	client := &http.Client{}
 	req, err := http.NewRequest(http.MethodPut, url, data)
@@ -121,14 +121,13 @@ func putRequest(url string, data io.Reader) string {
 	return string(body)
 }
 
-//
 // Function:     fileExists
 //
 // Description:  This function checks if a file exists and is not a directory before we
-//               try using it to prevent further errors.
+//
+//	try using it to prevent further errors.
 //
 // Inputs:       filename       A string representing the file to check.
-//
 func fileExists(filename string) bool {
 	info, err := os.Stat(filename)
 	if os.IsNotExist(err) {
@@ -137,28 +136,27 @@ func fileExists(filename string) bool {
 	return !info.IsDir()
 }
 
-//
 // Function:     FilenameWithoutExtension
 //
 // Description:  This function trims the extension off of a file name.
 //
 // Inputs:
-//               fn      File name to remove the extension.
 //
+//	fn      File name to remove the extension.
 func FilenameWithoutExtension(fn string) string {
 	return strings.TrimSuffix(fn, path.Ext(fn))
 }
 
-//
 // Function:     Map
 //
 // Description:  A utility function to return an array of strings
-//               that was processed by a given function.
+//
+//	that was processed by a given function.
 //
 // Inputs:
-//               list      Array of strings
-//               f         Function to execute on each string
 //
+//	list      Array of strings
+//	f         Function to execute on each string
 func Map(list []string, f func(string) string) []string {
 	result := make([]string, len(list))
 	for i, item := range list {
@@ -167,14 +165,11 @@ func Map(list []string, f func(string) string) []string {
 	return result
 }
 
-//
 // NOTE: This section is for the build cli using Bubbletea framework.
-//
 //
 // Struct:		model
 //
 // description: The structure for the bubbletea interface for building a dialog.
-//
 var buildDialog ModalDialog // The dialog structure we need to build
 
 type model struct {
@@ -196,8 +191,10 @@ type model struct {
 	err          error             // this will contain any errors from the validators
 }
 
-type tickMsg struct{}
-type errMsg error
+type (
+	tickMsg struct{}
+	errMsg  error
+)
 
 const (
 	name = iota
@@ -521,9 +518,7 @@ func switchInQueryMode(m model, msg string) (tea.Model, tea.Cmd) {
 }
 
 func switchInLabelMode(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
-	var (
-		cmds []tea.Cmd = make([]tea.Cmd, len(m.inputs))
-	)
+	var cmds []tea.Cmd = make([]tea.Cmd, len(m.inputs))
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -575,9 +570,7 @@ func switchInLabelMode(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-//
 // Checking for item inside of an array.
-//
 func contains(a []int, item int) bool {
 	for _, v := range a {
 		if v == item {
@@ -742,13 +735,12 @@ func viewButtonInputs(m model) string {
 	) + "\n"
 }
 
-//
 // Function:    View
 //
 // Description: The view on a model controls how it is displayed. It returns strings
-//              for displaying to the user. We select the right view based on the
-//              state of the statemachine.
 //
+//	for displaying to the user. We select the right view based on the
+//	state of the statemachine.
 func (m model) View() string {
 	result := ""
 	switch m.state {
@@ -800,18 +792,17 @@ func isDirectory(path string) (bool, error) {
 	return fileInfo.IsDir(), err
 }
 
-//
 // Function:     main
 //
 // Description:  This is the main entry point for the program.
 //
 // Inputs:
-//               The inputs are assigned to os.Argv. It should be a dialog
-//               name and the data to use to expand it. Currently made for the
-//				       macOS.
+//
+//	              The inputs are assigned to os.Argv. It should be a dialog
+//	              name and the data to use to expand it. Currently made for the
+//					       macOS.
 //
 // #TODO: make to work for other Oses.
-//
 func main() {
 	//
 	// Get the two template locations.
@@ -861,7 +852,7 @@ func main() {
 		Version:  "v1.0.0",
 		Compiled: time.Now(),
 		Authors: []*cli.Author{
-			&cli.Author{
+			{
 				Name:  "Richard Guay",
 				Email: "raguay@customct.com",
 			},
@@ -1245,7 +1236,6 @@ func mainUI() {
 			},
 		},
 	})
-
 	if err != nil {
 		println("Error:", err.Error())
 	}
