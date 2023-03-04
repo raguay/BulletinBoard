@@ -9,7 +9,7 @@ require (
 	github.com/charmbracelet/lipgloss v0.5.0
 	github.com/gin-gonic/gin v1.8.1
 	github.com/urfave/cli/v2 v2.16.3
-	github.com/wailsapp/wails/v2 v2.2.0
+	github.com/wailsapp/wails/v2 v2.3.1
 )
 
 require (

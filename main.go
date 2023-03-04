@@ -27,6 +27,16 @@ import (
 )
 
 //
+// The following is for the wails application.
+// Some testing.
+
+//go:embed frontend/dist
+var assets embed.FS
+
+//go:embed build/appicon.png
+var icon []byte
+
+//
 // The following is for the cli processing.
 //
 
@@ -1192,12 +1202,6 @@ func sendTemplate(templates1 string, templates2 string, dialog string, dt cli.Ar
 //
 // The following is for Wails part of the program. It is ran only if no command line arguments are given.
 //
-
-//go:embed frontend/dist
-var assets embed.FS
-
-//go:embed build/appicon.png
-var icon []byte
 
 func mainUI() {
 	// Create an instance of the app structure
